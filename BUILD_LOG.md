@@ -13,7 +13,7 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 ---
 
 ## Entry 2 — Cluster & Member Management
-**Date:**
-**What was built:**
-**How it was verified:**
-**Status:** 🔲 Not started
+**Date:** July 18, 2026
+**What was built:** Admin authentication flow, as the prerequisite for everything else in this entry: a login page (email/password against Supabase Auth), route protection in the session-refresh proxy (unauthenticated requests to any page are redirected to /login; authenticated requests to /login are redirected home), and a sign-out route handler. Cluster and member CRUD screens have not been built yet.
+**How it was verified:** Ran the dev server and confirmed an unauthenticated request to `/` gets a 307 redirect to `/login`, and `/login` itself renders the form without looping. Drove the login form with a headless browser to confirm failed sign-ins surface an error message in the UI instead of crashing the page. Full end-to-end sign-in against the live Supabase project could not be exercised from this sandbox, since its outbound network policy blocks `supabase.co`.
+**Status:** 🚧 In progress — auth flow done, cluster/member CRUD not started

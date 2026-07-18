@@ -38,7 +38,23 @@ export const updateSession = async (request: NextRequest) => {
   // being randomly logged out.
 
   // IMPORTANT: DO NOT REMOVE auth.getUser()
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const isLoginRoute = request.nextUrl.pathname.startsWith('/login')
+
+  if (!user && !isLoginRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  if (user && isLoginRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 };
