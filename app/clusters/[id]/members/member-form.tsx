@@ -1,17 +1,21 @@
 'use client'
 
 import { useActionState } from 'react'
+import { createClient as createBrowserClient } from '@/utils/supabase/client'
 import type { MemberFormState } from './actions'
 
 const initialState: MemberFormState = { error: null }
+const PHOTO_BUCKET = 'member-photos'
 
 export function MemberForm({
   action,
+  memberId,
   defaultValues,
   currentPhotoUrl,
   submitLabel,
 }: {
   action: (prevState: MemberFormState, formData: FormData) => Promise<MemberFormState>
+  memberId?: string
   defaultValues?: {
     full_name: string
     phone: string | null
@@ -23,7 +27,38 @@ export function MemberForm({
   currentPhotoUrl?: string | null
   submitLabel: string
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState)
+  // Uploads the photo directly from the browser to Supabase Storage,
+  // then strips the file out of formData before calling the Server
+  // Action — only the resulting storage key crosses that boundary, so
+  // a multi-MB phone photo never hits the Server Action body limit.
+  const uploadThenSubmit = async (
+    prevState: MemberFormState,
+    formData: FormData
+  ): Promise<MemberFormState> => {
+    const photo = formData.get('photo')
+    formData.delete('photo')
+
+    if (photo instanceof File && photo.size > 0) {
+      const photoKey = memberId ?? crypto.randomUUID()
+      const supabase = createBrowserClient()
+      const { error } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(photoKey, photo, { contentType: photo.type, upsert: true })
+
+      if (error) {
+        return { error: error.message }
+      }
+
+      formData.set('photo_path', photoKey)
+      if (!memberId) {
+        formData.set('id', photoKey)
+      }
+    }
+
+    return action(prevState, formData)
+  }
+
+  const [state, formAction, pending] = useActionState(uploadThenSubmit, initialState)
 
   return (
     <form action={formAction} className="mt-6 space-y-4">

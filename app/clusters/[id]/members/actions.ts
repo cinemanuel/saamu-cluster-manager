@@ -8,7 +8,12 @@ import { parseMemberFormData } from './validation'
 
 export type MemberFormState = { error: string | null }
 
-const PHOTO_BUCKET = 'member-photos'
+// The photo itself is uploaded directly from the browser to Supabase
+// Storage (see member-form.tsx) — never through this Server Action.
+// Server Action request bodies are capped (1MB by default, and Vercel's
+// own serverless functions cap at ~4.5MB regardless of Next.js config),
+// which a real phone photo blows past easily. Only the resulting
+// storage key (`photo_path`) crosses this boundary.
 
 export async function createMember(
   clusterId: string,
@@ -20,27 +25,17 @@ export async function createMember(
     return { error: parsed.error }
   }
 
+  const id = formData.get('id')
+  const photoPath = formData.get('photo_path')
+
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
-
-  const memberId = crypto.randomUUID()
-  const photo = formData.get('photo')
-  let photoPath: string | null = null
-
-  if (photo instanceof File && photo.size > 0) {
-    const { error: uploadError } = await supabase.storage
-      .from(PHOTO_BUCKET)
-      .upload(memberId, photo, { contentType: photo.type, upsert: true })
-
-    if (uploadError) {
-      return { error: uploadError.message }
-    }
-    photoPath = memberId
-  }
-
-  const { error } = await supabase
-    .from('members')
-    .insert({ id: memberId, cluster_id: clusterId, photo_path: photoPath, ...parsed.values })
+  const { error } = await supabase.from('members').insert({
+    ...(typeof id === 'string' && id ? { id } : {}),
+    cluster_id: clusterId,
+    photo_path: typeof photoPath === 'string' && photoPath ? photoPath : null,
+    ...parsed.values,
+  })
 
   if (error) {
     return { error: error.message }
@@ -61,23 +56,14 @@ export async function updateMember(
     return { error: parsed.error }
   }
 
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
-
-  const photo = formData.get('photo')
+  const photoPath = formData.get('photo_path')
   const updates: typeof parsed.values & { photo_path?: string } = { ...parsed.values }
-
-  if (photo instanceof File && photo.size > 0) {
-    const { error: uploadError } = await supabase.storage
-      .from(PHOTO_BUCKET)
-      .upload(memberId, photo, { contentType: photo.type, upsert: true })
-
-    if (uploadError) {
-      return { error: uploadError.message }
-    }
-    updates.photo_path = memberId
+  if (typeof photoPath === 'string' && photoPath) {
+    updates.photo_path = photoPath
   }
 
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
   const { error } = await supabase
     .from('members')
     .update(updates)
