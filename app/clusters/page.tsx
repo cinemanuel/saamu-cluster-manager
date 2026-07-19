@@ -47,7 +47,10 @@ export default async function ClustersPage() {
                   <td className="py-2 capitalize">{cluster.frequency}</td>
                   <td className="py-2 capitalize">{cluster.status}</td>
                   <td className="py-2 text-right">
-                    <Link href={`/clusters/${cluster.id}/edit`} className="underline">
+                    <Link href={`/clusters/${cluster.id}/members`} className="underline">
+                      Members
+                    </Link>{' '}
+                    <Link href={`/clusters/${cluster.id}/edit`} className="ml-2 underline">
                       Edit
                     </Link>
                   </td>
