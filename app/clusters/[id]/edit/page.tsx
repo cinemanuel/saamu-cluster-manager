@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { ClusterForm } from '../../cluster-form'
 import { updateCluster } from '../../actions'
+import { SiteNav } from '../../../site-nav'
 
 export default async function EditClusterPage({
   params,
@@ -24,13 +25,16 @@ export default async function EditClusterPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-8">
-      <h1 className="text-xl font-semibold">Edit cluster</h1>
-      <ClusterForm
-        action={updateCluster.bind(null, id)}
-        defaultValues={cluster}
-        submitLabel="Save changes"
-      />
-    </div>
+    <>
+      <SiteNav />
+      <div className="mx-auto w-full max-w-md px-4 py-8">
+        <h1 className="text-xl font-semibold">Edit cluster</h1>
+        <ClusterForm
+          action={updateCluster.bind(null, id)}
+          defaultValues={cluster}
+          submitLabel="Save changes"
+        />
+      </div>
+    </>
   )
 }
