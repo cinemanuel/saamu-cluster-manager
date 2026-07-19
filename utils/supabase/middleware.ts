@@ -44,16 +44,20 @@ export const updateSession = async (request: NextRequest) => {
 
   const isLoginRoute = request.nextUrl.pathname.startsWith('/login')
 
+  // 303 forces the follow-up request to be a GET. A plain (default 307)
+  // redirect would preserve the original method, so a POST to a
+  // protected route (e.g. an expired session hitting /auth/signout)
+  // would redirect into a POST against /login, a GET-only page, and 405.
   if (!user && !isLoginRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(url, 303)
   }
 
   if (user && isLoginRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(url, 303)
   }
 
   return supabaseResponse
