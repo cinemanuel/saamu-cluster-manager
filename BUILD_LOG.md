@@ -30,4 +30,11 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 **Debugging note 3 — no way back from /clusters:** There was no navigation off the cluster pages once you left the home page — no link back home, no sign-out button. Added a shared nav bar (Home / Clusters / Sign out) to the home page and all three cluster pages.
 
 **How it was verified:** Local test-Postgres migration checks for both the `fee_amount` constraints and the `authenticated` grant (including reproducing and then resolving the exact "permission denied" error). `npm run build`/`lint`/`tsc --noEmit` all clean throughout. Locally confirmed all cluster routes redirect unauthenticated requests to `/login`, and that the sign-out redirect resolves to 200 instead of 405. Live on the deployed app: signed in as the real coordinator account and confirmed cluster creation (including validation rejecting a non-positive amount), sign-out, and the new navigation all work end-to-end.
-**Status:** ✅ Complete and verified live — member management (slice 2) not started
+**Status:** ✅ Complete and verified live
+
+---
+
+## Entry 3 (Slice 2) — Member Management
+**What was built:** Member management scoped to a cluster, using the existing `members` table (no schema changes needed). `/clusters/[id]/members` — list of a cluster's members; `/clusters/[id]/members/new` — add-member form; `/clusters/[id]/members/[memberId]/edit` — edit form. Fields: full name (required), phone, email — photo upload and KYC status editing deferred to a later slice, per scope confirmed before starting. Same Server Action + `useActionState` pattern as cluster management, with validation (name required) enforced server-side. Added "Members" links from the clusters list, and all new routes carry the shared `SiteNav`.
+**How it was verified:** `npm run build`/`lint`/`tsc --noEmit` all clean. Local dev server: unauthenticated requests to `/clusters/[id]/members`, `.../new`, and `.../[memberId]/edit` all correctly redirect (303) to `/login`. Live create/edit/list flow against real data still needs manual verification against the deployed app.
+**Status:** 🚧 Pending live verification
