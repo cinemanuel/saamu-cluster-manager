@@ -16,7 +16,7 @@ export default async function EditMemberPage({
 
   const { data: member } = await supabase
     .from('members')
-    .select('full_name, phone, email')
+    .select('full_name, phone, email, residential_address, business_name, business_address')
     .eq('id', memberId)
     .eq('cluster_id', id)
     .single()
