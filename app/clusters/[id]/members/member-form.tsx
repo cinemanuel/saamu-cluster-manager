@@ -15,6 +15,9 @@ export function MemberForm({
     full_name: string
     phone: string | null
     email: string | null
+    residential_address: string | null
+    business_name: string | null
+    business_address: string | null
   }
   submitLabel: string
 }) {
@@ -57,6 +60,42 @@ export function MemberForm({
           name="email"
           type="email"
           defaultValue={defaultValues?.email ?? ''}
+          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="residential_address" className="text-sm font-medium">
+          Residential address
+        </label>
+        <input
+          id="residential_address"
+          name="residential_address"
+          defaultValue={defaultValues?.residential_address ?? ''}
+          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="business_name" className="text-sm font-medium">
+          Business name
+        </label>
+        <input
+          id="business_name"
+          name="business_name"
+          defaultValue={defaultValues?.business_name ?? ''}
+          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="business_address" className="text-sm font-medium">
+          Business address
+        </label>
+        <input
+          id="business_address"
+          name="business_address"
+          defaultValue={defaultValues?.business_address ?? ''}
           className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
         />
       </div>
