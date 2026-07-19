@@ -8,6 +8,7 @@ const initialState: MemberFormState = { error: null }
 export function MemberForm({
   action,
   defaultValues,
+  currentPhotoUrl,
   submitLabel,
 }: {
   action: (prevState: MemberFormState, formData: FormData) => Promise<MemberFormState>
@@ -19,6 +20,7 @@ export function MemberForm({
     business_name: string | null
     business_address: string | null
   }
+  currentPhotoUrl?: string | null
   submitLabel: string
 }) {
   const [state, formAction, pending] = useActionState(action, initialState)
@@ -35,6 +37,27 @@ export function MemberForm({
           required
           defaultValue={defaultValues?.full_name}
           className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="photo" className="text-sm font-medium">
+          Photo
+        </label>
+        {currentPhotoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={currentPhotoUrl}
+            alt=""
+            className="h-16 w-16 rounded object-cover"
+          />
+        )}
+        <input
+          id="photo"
+          name="photo"
+          type="file"
+          accept="image/*"
+          className="w-full text-sm"
         />
       </div>
 

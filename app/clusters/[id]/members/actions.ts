@@ -8,6 +8,8 @@ import { parseMemberFormData } from './validation'
 
 export type MemberFormState = { error: string | null }
 
+const PHOTO_BUCKET = 'member-photos'
+
 export async function createMember(
   clusterId: string,
   _prevState: MemberFormState,
@@ -20,9 +22,25 @@ export async function createMember(
 
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  const memberId = crypto.randomUUID()
+  const photo = formData.get('photo')
+  let photoPath: string | null = null
+
+  if (photo instanceof File && photo.size > 0) {
+    const { error: uploadError } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(memberId, photo, { contentType: photo.type, upsert: true })
+
+    if (uploadError) {
+      return { error: uploadError.message }
+    }
+    photoPath = memberId
+  }
+
   const { error } = await supabase
     .from('members')
-    .insert({ cluster_id: clusterId, ...parsed.values })
+    .insert({ id: memberId, cluster_id: clusterId, photo_path: photoPath, ...parsed.values })
 
   if (error) {
     return { error: error.message }
@@ -45,9 +63,24 @@ export async function updateMember(
 
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  const photo = formData.get('photo')
+  const updates: typeof parsed.values & { photo_path?: string } = { ...parsed.values }
+
+  if (photo instanceof File && photo.size > 0) {
+    const { error: uploadError } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(memberId, photo, { contentType: photo.type, upsert: true })
+
+    if (uploadError) {
+      return { error: uploadError.message }
+    }
+    updates.photo_path = memberId
+  }
+
   const { error } = await supabase
     .from('members')
-    .update(parsed.values)
+    .update(updates)
     .eq('id', memberId)
     .eq('cluster_id', clusterId)
 

@@ -25,9 +25,26 @@ export default async function MembersPage({
 
   const { data: members } = await supabase
     .from('members')
-    .select('id, full_name, phone, email')
+    .select('id, full_name, phone, email, photo_path')
     .eq('cluster_id', id)
     .order('created_at', { ascending: false })
+
+  const photoPaths = (members ?? [])
+    .map((member) => member.photo_path)
+    .filter((path): path is string => Boolean(path))
+
+  const photoUrlByPath = new Map<string, string>()
+  if (photoPaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from('member-photos')
+      .createSignedUrls(photoPaths, 300)
+
+    for (const entry of signedUrls ?? []) {
+      if (entry.signedUrl && entry.path) {
+        photoUrlByPath.set(entry.path, entry.signedUrl)
+      }
+    }
+  }
 
   return (
     <>
@@ -51,6 +68,7 @@ export default async function MembersPage({
           <table className="mt-6 w-full text-left text-sm">
             <thead>
               <tr className="border-b border-black/10 dark:border-white/15">
+                <th className="py-2 font-medium">Photo</th>
                 <th className="py-2 font-medium">Name</th>
                 <th className="py-2 font-medium">Phone</th>
                 <th className="py-2 font-medium">Email</th>
@@ -58,18 +76,29 @@ export default async function MembersPage({
               </tr>
             </thead>
             <tbody>
-              {members.map((member) => (
-                <tr key={member.id} className="border-b border-black/5 dark:border-white/10">
-                  <td className="py-2">{member.full_name}</td>
-                  <td className="py-2">{member.phone ?? '—'}</td>
-                  <td className="py-2">{member.email ?? '—'}</td>
-                  <td className="py-2 text-right">
-                    <Link href={`/clusters/${id}/members/${member.id}/edit`} className="underline">
-                      Edit
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {members.map((member) => {
+                const photoUrl = member.photo_path ? photoUrlByPath.get(member.photo_path) : undefined
+                return (
+                  <tr key={member.id} className="border-b border-black/5 dark:border-white/10">
+                    <td className="py-2">
+                      {photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={photoUrl} alt="" className="h-8 w-8 rounded object-cover" />
+                      ) : (
+                        <span className="block h-8 w-8 rounded bg-black/10 dark:bg-white/10" />
+                      )}
+                    </td>
+                    <td className="py-2">{member.full_name}</td>
+                    <td className="py-2">{member.phone ?? '—'}</td>
+                    <td className="py-2">{member.email ?? '—'}</td>
+                    <td className="py-2 text-right">
+                      <Link href={`/clusters/${id}/members/${member.id}/edit`} className="underline">
+                        Edit
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         ) : (

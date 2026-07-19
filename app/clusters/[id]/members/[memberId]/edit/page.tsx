@@ -16,13 +16,21 @@ export default async function EditMemberPage({
 
   const { data: member } = await supabase
     .from('members')
-    .select('full_name, phone, email, residential_address, business_name, business_address')
+    .select('full_name, phone, email, residential_address, business_name, business_address, photo_path')
     .eq('id', memberId)
     .eq('cluster_id', id)
     .single()
 
   if (!member) {
     notFound()
+  }
+
+  let currentPhotoUrl: string | null = null
+  if (member.photo_path) {
+    const { data: signed } = await supabase.storage
+      .from('member-photos')
+      .createSignedUrl(member.photo_path, 300)
+    currentPhotoUrl = signed?.signedUrl ?? null
   }
 
   return (
@@ -33,6 +41,7 @@ export default async function EditMemberPage({
         <MemberForm
           action={updateMember.bind(null, id, memberId)}
           defaultValues={member}
+          currentPhotoUrl={currentPhotoUrl}
           submitLabel="Save changes"
         />
       </div>
