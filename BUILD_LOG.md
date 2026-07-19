@@ -17,3 +17,10 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 **Debugging note:** Initial deployment showed a persistent 404 on all routes despite a successful build. Root cause: the Vercel project's Framework Preset was locked to "Other" from an early deployment made before real Next.js code existed in the repo — Project Settings had since correctly auto-detected Next.js, but existing deployments retained their original stale settings. Fixed by pushing a new commit to trigger a fresh deployment rather than redeploying an old one.
 **How it was verified:** Signed in live with the real coordinator account against the deployed app — confirmed working end-to-end, not just locally simulated.
 **Status:** ✅ Complete and verified live
+
+---
+
+## Entry 3 (Slice 1) — Cluster Management
+**What was built:** Migration adding a `fee_amount` column to `clusters`, plus DB-level check constraints requiring `contribution_amount` and `fee_amount` to be positive. A `/clusters` list page, a `/clusters/new` create form, and a `/clusters/[id]/edit` edit form — all using Server Actions with the same validation rule (name required; contribution and fee amounts must be positive numbers) enforced both client-side (HTML `required`/`min`) and server-side before the Supabase write. All three routes sit behind the existing proxy auth guard, so unauthenticated requests bounce to `/login` same as every other page.
+**How it was verified:** Ran the local test-Postgres migration check again (constraint rejects a zero fee and a negative contribution amount, accepts a valid row). `npm run build`/`lint`/`tsc --noEmit` all clean. Confirmed locally that `/clusters`, `/clusters/new`, and `/clusters/[id]/edit` all correctly 307-redirect to `/login` when unauthenticated. Full create/edit/list flow against real data has not yet been exercised — needs to be verified live against the deployed app (steps provided separately) since this sandbox can't reach the live Supabase project.
+**Status:** 🚧 Pending live verification — member management (slice 2) not started
