@@ -40,6 +40,7 @@ export default async function EditMemberPage({
         <h1 className="text-xl font-semibold">Edit member</h1>
         <MemberForm
           action={updateMember.bind(null, id, memberId)}
+          memberId={memberId}
           defaultValues={member}
           currentPhotoUrl={currentPhotoUrl}
           submitLabel="Save changes"
