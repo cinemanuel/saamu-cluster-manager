@@ -1,6 +1,6 @@
 export type MemberInput = {
   full_name: string
-  phone: string | null
+  phone: string
   email: string | null
   residential_address: string | null
   business_name: string | null
@@ -20,12 +20,15 @@ export function parseMemberFormData(
   if (!fullName) {
     return { ok: false, error: 'Member name is required.' }
   }
+  if (!phone) {
+    return { ok: false, error: 'WhatsApp number is required.' }
+  }
 
   return {
     ok: true,
     values: {
       full_name: fullName,
-      phone: phone || null,
+      phone,
       email: email || null,
       residential_address: residentialAddress || null,
       business_name: businessName || null,

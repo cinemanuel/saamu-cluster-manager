@@ -12,6 +12,7 @@ export function MemberForm({
   memberId,
   defaultValues,
   currentPhotoUrl,
+  kycTier,
   submitLabel,
 }: {
   action: (prevState: MemberFormState, formData: FormData) => Promise<MemberFormState>
@@ -25,6 +26,7 @@ export function MemberForm({
     business_address: string | null
   }
   currentPhotoUrl?: string | null
+  kycTier?: number
   submitLabel: string
 }) {
   // Uploads the photo directly from the browser to Supabase Storage,
@@ -62,6 +64,13 @@ export function MemberForm({
 
   return (
     <form action={formAction} className="mt-6 space-y-4">
+      {kycTier !== undefined && (
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          KYC tier: <span className="font-medium text-foreground">Tier {kycTier}</span>{' '}
+          (calculated automatically from the fields below)
+        </p>
+      )}
+
       <div className="space-y-1">
         <label htmlFor="full_name" className="text-sm font-medium">
           Full name
@@ -98,12 +107,13 @@ export function MemberForm({
 
       <div className="space-y-1">
         <label htmlFor="phone" className="text-sm font-medium">
-          Phone
+          WhatsApp number
         </label>
         <input
           id="phone"
           name="phone"
           type="tel"
+          required
           defaultValue={defaultValues?.phone ?? ''}
           className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
         />
