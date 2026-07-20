@@ -16,7 +16,7 @@ export default async function EditMemberPage({
 
   const { data: member } = await supabase
     .from('members')
-    .select('full_name, phone, email, residential_address, business_name, business_address, photo_path')
+    .select('full_name, phone, email, residential_address, business_name, business_address, photo_path, kyc_tier')
     .eq('id', memberId)
     .eq('cluster_id', id)
     .single()
@@ -43,6 +43,7 @@ export default async function EditMemberPage({
           memberId={memberId}
           defaultValues={member}
           currentPhotoUrl={currentPhotoUrl}
+          kycTier={member.kyc_tier}
           submitLabel="Save changes"
         />
       </div>

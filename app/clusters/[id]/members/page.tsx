@@ -25,7 +25,7 @@ export default async function MembersPage({
 
   const { data: members } = await supabase
     .from('members')
-    .select('id, full_name, phone, email, photo_path')
+    .select('id, full_name, phone, email, photo_path, kyc_tier')
     .eq('cluster_id', id)
     .order('created_at', { ascending: false })
 
@@ -72,6 +72,7 @@ export default async function MembersPage({
                 <th className="py-2 font-medium">Name</th>
                 <th className="py-2 font-medium">Phone</th>
                 <th className="py-2 font-medium">Email</th>
+                <th className="py-2 font-medium">Tier</th>
                 <th className="py-2" />
               </tr>
             </thead>
@@ -91,6 +92,7 @@ export default async function MembersPage({
                     <td className="py-2">{member.full_name}</td>
                     <td className="py-2">{member.phone ?? '—'}</td>
                     <td className="py-2">{member.email ?? '—'}</td>
+                    <td className="py-2">Tier {member.kyc_tier}</td>
                     <td className="py-2 text-right">
                       <Link href={`/clusters/${id}/members/${member.id}/edit`} className="underline">
                         Edit
