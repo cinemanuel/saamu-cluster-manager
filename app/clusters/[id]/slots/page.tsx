@@ -38,18 +38,27 @@ export default async function SlotsPage({
     .eq('cluster_id', id)
     .order('full_name', { ascending: true })
 
-  const { data: assignments } = await supabase
-    .from('slot_members')
-    .select('slot_id, member_id, members(full_name)')
-    .in('slot_id', (slots ?? []).map((slot) => slot.id))
+  const slotIds = (slots ?? []).map((slot) => slot.id)
+
+  const { data: assignments } =
+    slotIds.length > 0
+      ? await supabase.from('slot_members').select('slot_id, member_id').in('slot_id', slotIds)
+      : { data: [] }
+
+  // Look up member names from the members list already fetched above,
+  // rather than an embedded `members(full_name)` join on slot_members.
+  // If that embed ever fails to resolve for any reason, this silently
+  // treats a real, intact assignment as unassigned — which is exactly
+  // indistinguishable from actual data loss from the UI's perspective.
+  const fullNameByMemberId = new Map((members ?? []).map((member) => [member.id, member.full_name]))
 
   const assignmentBySlotId = new Map<string, { member_id: string; full_name: string }>()
   for (const assignment of assignments ?? []) {
-    const member = Array.isArray(assignment.members) ? assignment.members[0] : assignment.members
-    if (member) {
+    const fullName = fullNameByMemberId.get(assignment.member_id)
+    if (fullName) {
       assignmentBySlotId.set(assignment.slot_id, {
         member_id: assignment.member_id,
-        full_name: member.full_name,
+        full_name: fullName,
       })
     }
   }
