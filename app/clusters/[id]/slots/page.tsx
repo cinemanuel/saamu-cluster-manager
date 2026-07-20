@@ -80,7 +80,14 @@ export default async function SlotsPage({
                 const assignment = assignmentBySlotId.get(slot.id)
                 return (
                   <tr key={slot.id} className="border-b border-black/5 dark:border-white/10">
-                    <td className="py-2">{slot.position}</td>
+                    <td className="py-2">
+                      {slot.position}
+                      {slot.position <= 2 && (
+                        <span className="ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs dark:bg-white/10">
+                          Requires Tier 3
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2">{slot.label ?? '—'}</td>
                     <td className="py-2">
                       <AssignMemberForm

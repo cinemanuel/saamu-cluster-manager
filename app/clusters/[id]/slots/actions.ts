@@ -52,6 +52,17 @@ export async function assignMember(
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
+  const { data: slot } = await supabase
+    .from('slots')
+    .select('id')
+    .eq('id', slotId)
+    .eq('cluster_id', clusterId)
+    .single()
+
+  if (!slot) {
+    return { error: 'That position does not belong to this cluster.' }
+  }
+
   const { data: member } = await supabase
     .from('members')
     .select('id')
