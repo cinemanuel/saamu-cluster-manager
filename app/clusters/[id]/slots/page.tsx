@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
 import { SlotForm } from './slot-form'
 import { AssignMemberForm } from './assign-member-form'
-import { createSlot, assignMember } from './actions'
+import { createSlot, assignMembers } from './actions'
 
 export default async function SlotsPage({
   params,
@@ -28,7 +28,7 @@ export default async function SlotsPage({
 
   const { data: slots } = await supabase
     .from('slots')
-    .select('id, position, label')
+    .select('id, position, label, is_shared')
     .eq('cluster_id', id)
     .order('position', { ascending: true })
 
@@ -52,14 +52,13 @@ export default async function SlotsPage({
   // indistinguishable from actual data loss from the UI's perspective.
   const fullNameByMemberId = new Map((members ?? []).map((member) => [member.id, member.full_name]))
 
-  const assignmentBySlotId = new Map<string, { member_id: string; full_name: string }>()
+  const assignmentsBySlotId = new Map<string, { member_id: string; full_name: string }[]>()
   for (const assignment of assignments ?? []) {
     const fullName = fullNameByMemberId.get(assignment.member_id)
     if (fullName) {
-      assignmentBySlotId.set(assignment.slot_id, {
-        member_id: assignment.member_id,
-        full_name: fullName,
-      })
+      const existing = assignmentsBySlotId.get(assignment.slot_id) ?? []
+      existing.push({ member_id: assignment.member_id, full_name: fullName })
+      assignmentsBySlotId.set(assignment.slot_id, existing)
     }
   }
 
@@ -81,28 +80,34 @@ export default async function SlotsPage({
               <tr className="border-b border-black/10 dark:border-white/15">
                 <th className="py-2 font-medium">Position</th>
                 <th className="py-2 font-medium">Label</th>
-                <th className="py-2 font-medium">Assigned member</th>
+                <th className="py-2 font-medium">Assigned member(s)</th>
               </tr>
             </thead>
             <tbody>
               {slots.map((slot) => {
-                const assignment = assignmentBySlotId.get(slot.id)
+                const assignment = assignmentsBySlotId.get(slot.id) ?? []
                 return (
                   <tr key={slot.id} className="border-b border-black/5 dark:border-white/10">
-                    <td className="py-2">
+                    <td className="py-2 align-top">
                       {slot.position}
                       {slot.position <= 2 && (
                         <span className="ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs dark:bg-white/10">
                           Requires Tier 3
                         </span>
                       )}
+                      {slot.is_shared && (
+                        <span className="ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs dark:bg-white/10">
+                          Shared
+                        </span>
+                      )}
                     </td>
-                    <td className="py-2">{slot.label ?? '—'}</td>
+                    <td className="py-2 align-top">{slot.label ?? '—'}</td>
                     <td className="py-2">
                       <AssignMemberForm
-                        action={assignMember.bind(null, id, slot.id)}
+                        action={assignMembers.bind(null, id, slot.id)}
                         members={members ?? []}
-                        currentMemberId={assignment?.member_id ?? null}
+                        currentMemberIds={assignment.map((entry) => entry.member_id)}
+                        isShared={slot.is_shared}
                       />
                     </td>
                   </tr>

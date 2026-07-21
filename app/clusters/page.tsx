@@ -53,6 +53,9 @@ export default async function ClustersPage() {
                     <Link href={`/clusters/${cluster.id}/slots`} className="ml-2 underline">
                       Rotation
                     </Link>{' '}
+                    <Link href={`/clusters/${cluster.id}/cycles`} className="ml-2 underline">
+                      Cycles
+                    </Link>{' '}
                     <Link href={`/clusters/${cluster.id}/edit`} className="ml-2 underline">
                       Edit
                     </Link>

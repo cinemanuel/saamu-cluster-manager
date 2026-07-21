@@ -37,17 +37,13 @@ export async function createSlot(
   redirect(`/clusters/${clusterId}/slots`)
 }
 
-export async function assignMember(
+export async function assignMembers(
   clusterId: string,
   slotId: string,
   _prevState: SlotFormState,
   formData: FormData
 ): Promise<SlotFormState> {
-  const memberId = String(formData.get('member_id') ?? '').trim()
-
-  if (!memberId) {
-    return { error: 'Choose a member to assign.' }
-  }
+  const memberIds = formData.getAll('member_ids').map(String).filter(Boolean)
 
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
@@ -63,24 +59,25 @@ export async function assignMember(
     return { error: 'That position does not belong to this cluster.' }
   }
 
-  const { data: member } = await supabase
-    .from('members')
-    .select('id')
-    .eq('id', memberId)
-    .eq('cluster_id', clusterId)
-    .single()
+  if (memberIds.length > 0) {
+    const { data: validMembers } = await supabase
+      .from('members')
+      .select('id')
+      .eq('cluster_id', clusterId)
+      .in('id', memberIds)
 
-  if (!member) {
-    return { error: 'That member does not belong to this cluster.' }
+    if (!validMembers || validMembers.length !== memberIds.length) {
+      return { error: 'One or more selected members do not belong to this cluster.' }
+    }
   }
 
   // Delete-then-insert as one atomic transaction via RPC — doing these
-  // as two separate PostgREST calls let a rejected reassignment (the
-  // protected-head trigger raising on the insert) leave the slot
+  // as separate PostgREST calls let a rejected reassignment (the
+  // protected-head trigger raising on any inserted row) leave the slot
   // cleared, since the delete had already committed on its own.
-  const { error: reassignError } = await supabase.rpc('reassign_slot_member', {
+  const { error: reassignError } = await supabase.rpc('set_slot_members', {
     p_slot_id: slotId,
-    p_member_id: memberId,
+    p_member_ids: memberIds,
   })
 
   if (reassignError) {
