@@ -19,7 +19,18 @@ export async function createCluster(
 
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
-  const { error } = await supabase.from('clusters').insert(parsed.values)
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Not authenticated.' }
+  }
+
+  const { error } = await supabase
+    .from('clusters')
+    .insert({ owner_id: user.id, ...parsed.values })
 
   if (error) {
     return { error: error.message }
