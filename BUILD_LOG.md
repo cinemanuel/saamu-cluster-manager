@@ -82,3 +82,35 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 **Status:**  ✅ Complete and verified live — the rejected-reassignment bug was found, fixed, and re-verified directly against the production database and the live preview. This was the last slice of the KYC profiling feature.
 **Case study:** [docs/case-studies/saamu-protected-head-bug-case-study.md](./docs/case-studies/saamu-protected-head-bug-case-study.md)
 
+
+## Entry 5 (Slice 5) — Cycle Management
+
+**What was built:** Cycle tracking for rotation clusters — starting the first 
+cycle, completing a cycle and advancing to the next position in order, 
+stopping cleanly at "rotation complete" instead of wrapping around, and 
+shared-slot co-collector support (slots.is_shared, set_slot_members()).
+
+**Bug found and fixed:** Completing the final cycle of a rotation (no next 
+cycle to advance to) wrote end_date = today's date regardless of the cycle's 
+own start_date, producing an impossible end-before-start date when the final 
+cycle's start_date was in the future. Root cause: advance_cycle fell back to 
+coalesce(p_next_start_date, current_date) unconditionally. Fixed by computing 
+one completion date used consistently for both the completed cycle's end_date 
+and the new cycle's start_date, rejecting admin-supplied dates earlier than 
+the cycle's own start, and adding a CHECK constraint on cycles so this class 
+of bug can't recur from any code path. Migration: 
+20260723020000_fix_cycle_end_date_ordering.sql.
+
+**How it was verified:** Ran the full 5-step test plan live. Steps 1-3 
+(start first cycle, complete & advance, stop at rotation end) confirmed on 
+Cluster 66. The date bug above was caught during step 3 testing, fixed, and 
+re-verified. Step 5 (guard rails) tested by bypassing the app entirely — 
+direct SQL calls against the live production database:
+- Re-advancing an already-completed cycle → correctly rejected 
+  ("This cycle is not active and cannot be advanced").
+- Inserting a second active cycle for a cluster that already has one → 
+  correctly rejected at the database level by a unique constraint 
+  (cycles_one_active_per_cluster), not just app-level logic.
+
+**Status:** 🚧 Step 4 (shared-slot co-collector display) not yet tested. 
+Do not merge PR #11 until confirmed.
