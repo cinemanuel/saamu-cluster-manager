@@ -112,5 +112,11 @@ direct SQL calls against the live production database:
   correctly rejected at the database level by a unique constraint 
   (cycles_one_active_per_cluster), not just app-level logic.
 
-**Status:** 🚧 Step 4 (shared-slot co-collector display) not yet tested. 
-Do not merge PR #11 until confirmed.
+**Test 4 confirmed:** Created a fresh unprotected shared position (Position 3) 
+on a throwaway test cluster, assigned two members via the checkbox interface, 
+and confirmed both persist as co-collectors after a hard refresh. Also 
+confirmed (bonus check) that the Tier 3 protected-head rule correctly applies 
+to every co-collector on a shared *protected* position — attempting to include 
+a Tier 1 member alongside a Tier 3 member on Position 2 was correctly rejected.
+
+**Status:** ✅ All 5 tests passed. Ready to merge PR #11.
