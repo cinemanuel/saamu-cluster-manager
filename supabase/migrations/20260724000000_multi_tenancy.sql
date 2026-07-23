@@ -88,14 +88,16 @@ $$;
 -- lookup: the where clause evaluates false for every row (returning
 -- no rows, not an error) when the caller isn't one.
 create or replace function public.get_user_emails(p_user_ids uuid[])
-returns table (user_id uuid, email text)
+returns table(id uuid, email text)
 language sql
 stable
 security definer
 set search_path = public
 as $$
   select id, email from auth.users
-  where public.is_admin() and id = any(p_user_ids);
+  where public.is_admin()
+    and (public.is_super_admin() or id = auth.uid())
+    and id = any(p_user_ids);
 $$;
 
 -- ---------------------------------------------------------------------
