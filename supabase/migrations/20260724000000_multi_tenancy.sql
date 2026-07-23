@@ -149,6 +149,8 @@ create policy "Coordinators manage their own slot_members"
   with check (
     public.is_admin() and not public.is_super_admin()
     and public.owns_cluster((select cluster_id from public.slots where id = slot_id))
+    and (select cluster_id from public.members where id = member_id)
+        = (select cluster_id from public.slots where id = slot_id)
   );
 
 create policy "Super admins can view all slot_members"
@@ -159,8 +161,15 @@ drop policy "Admin full access to cycles" on public.cycles;
 
 create policy "Coordinators manage their own cycles"
   on public.cycles for all
-  using (public.is_admin() and not public.is_super_admin() and public.owns_cluster(cluster_id))
-  with check (public.is_admin() and not public.is_super_admin() and public.owns_cluster(cluster_id));
+  using (
+    public.is_admin() and not public.is_super_admin()
+    and public.owns_cluster(cluster_id)
+  )
+  with check (
+    public.is_admin() and not public.is_super_admin()
+    and public.owns_cluster(cluster_id)
+    and (select cluster_id from public.slots where id = slot_id) = cluster_id
+  );
 
 create policy "Super admins can view all cycles"
   on public.cycles for select
