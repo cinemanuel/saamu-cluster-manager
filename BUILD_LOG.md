@@ -97,3 +97,58 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 
 **How it was verified:** Both cycle-management migrations re-run against local Postgres alongside the full existing sequence before ever going live — no conflicts. Full 3-position lifecycle (2 protected heads + 1 shared tail) run directly against the real RPCs locally first: start, block-duplicate-start, advance, block-re-advance-of-completed, shared co-collector display, end-of-rotation. Then the full 5-step test plan run live on Cluster 66: steps 1–3 (start first cycle, complete & advance, stop at rotation end) confirmed; the end_date bug was caught during step 3, reproduced locally, fixed, and re-verified live; step 4 confirmed by creating a fresh unprotected shared position, assigning two members via the checkbox interface, and confirming both persist as co-collectors after a hard refresh (plus a bonus check that the Tier 3 rule correctly rejects a Tier 1 member sharing a *protected* position); step 5's guard rails confirmed by bypassing the app entirely with direct SQL against the live production database — re-advancing an already-completed cycle correctly rejected, and inserting a second active cycle for a cluster that already has one correctly rejected at the database level by the unique constraint, not just app logic. `npm run build`/`lint`/`tsc --noEmit` all clean throughout.
 **Status:** ✅ All 5 tests passed live. Ready to merge PR #11.
+
+---
+
+## Entry 6: Multi-tenancy with super-admin oversight
+
+**Status:** Ready to merge
+
+**What shipped:**
+- `clusters.owner_id` (not null, references `auth.users`) — the tenant boundary,
+  set once at creation, never transferred
+- `admin_users.role` (`coordinator` | `super_admin`, default `coordinator`)
+- RLS policies on every domain table: coordinators can do anything to their own
+  data only; super-admins can SELECT (read-only) across everyone's data
+- `createCluster` now stamps `owner_id` from the session
+- `get_user_emails()` RPC resolves owner IDs to emails for oversight display
+
+**Verification process:**
+1. Manual live testing on the PR's Vercel preview URL (not production — an
+   earlier attempt against production surfaced a false-positive RLS violation
+   caused by testing unmerged code against already-migrated policies)
+2. Confirmed: Coordinator B creates a cluster — correct `owner_id` set, visible
+   only to her
+3. Confirmed: super-admin sees all clusters across coordinators (read access)
+4. Installed CodeRabbit (first use on this repo) for automated review as a
+   second pass alongside manual testing
+
+**Bugs found and fixed:**
+
+1. Missing cross-cluster relationship checks (Major, security) — `slot_members`
+   and `cycles` policies verified the coordinator owned the referenced cluster,
+   but never checked that the linked record (`member_id`, `slot_id`) actually
+   belonged to that same cluster. A coordinator could link records across
+   tenants via a direct API request with a known cross-tenant UUID. Fixed by
+   adding relationship checks to `WITH CHECK` on both policies.
+
+2. `get_user_emails()` email leak (Major, security) — the function gated on
+   `is_admin()`, true for both coordinators and super-admins, so any
+   coordinator could pass arbitrary UUIDs and retrieve other tenants' emails.
+   Fixed by restricting non-super-admin callers to their own `auth.uid()` only.
+
+3. Owner column silently blank (functional) — found while updating the
+   migration file: `get_user_emails()` returns a column named `id`, but
+   `page.tsx` read `owner.user_id` from the result, so the Owner column
+   resolved to `undefined` with no error. Fixed by updating `page.tsx` to
+   read `owner.id`.
+
+**Fix verification:** each fix applied live to production first, validated via
+direct SQL, then backported into the migration file so a fresh environment
+would create the policies/function correctly from scratch. CodeRabbit re-run
+after both security fixes landed — clean, no remaining findings.
+
+**Key process note:** manual UI-level testing did not surface either security
+bug — both required a direct-API-request framing (crafted cross-tenant UUIDs)
+that automated review caught and manual testing wouldn't naturally exercise.
+Worth keeping CodeRabbit as a standing second pass on future RLS/auth changes.

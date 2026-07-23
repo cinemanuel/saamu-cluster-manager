@@ -9,8 +9,21 @@ export default async function ClustersPage() {
 
   const { data: clusters } = await supabase
     .from('clusters')
-    .select('id, name, contribution_amount, fee_amount, frequency, status')
+    .select('id, name, contribution_amount, fee_amount, frequency, status, owner_id')
     .order('created_at', { ascending: false })
+
+  // Resolving owner_id to an email so cross-coordinator oversight
+  // (super-admins seeing every cluster) is actually usable — without
+  // this there'd be no way to tell whose data is whose. For a
+  // coordinator this just redundantly shows their own email on every
+  // row, since RLS already limits them to their own clusters.
+  const ownerIds = Array.from(new Set((clusters ?? []).map((cluster) => cluster.owner_id)))
+  let owners: { id: string; email: string }[] = []
+  if (ownerIds.length > 0) {
+    const { data } = await supabase.rpc('get_user_emails', { p_user_ids: ownerIds })
+    owners = data ?? []
+  }
+  const emailByOwnerId = new Map(owners.map((owner) => [owner.id, owner.email]))
 
   return (
     <>
@@ -31,6 +44,7 @@ export default async function ClustersPage() {
             <thead>
               <tr className="border-b border-black/10 dark:border-white/15">
                 <th className="py-2 font-medium">Name</th>
+                <th className="py-2 font-medium">Owner</th>
                 <th className="py-2 font-medium">Contribution</th>
                 <th className="py-2 font-medium">Fee</th>
                 <th className="py-2 font-medium">Frequency</th>
@@ -42,6 +56,7 @@ export default async function ClustersPage() {
               {clusters.map((cluster) => (
                 <tr key={cluster.id} className="border-b border-black/5 dark:border-white/10">
                   <td className="py-2">{cluster.name}</td>
+                  <td className="py-2">{emailByOwnerId.get(cluster.owner_id) ?? '—'}</td>
                   <td className="py-2">{Number(cluster.contribution_amount).toFixed(2)}</td>
                   <td className="py-2">{Number(cluster.fee_amount).toFixed(2)}</td>
                   <td className="py-2 capitalize">{cluster.frequency}</td>
