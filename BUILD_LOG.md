@@ -83,40 +83,17 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 **Case study:** [docs/case-studies/saamu-protected-head-bug-case-study.md](./docs/case-studies/saamu-protected-head-bug-case-study.md)
 
 
+---
+
 ## Entry 5 (Slice 5) — Cycle Management
 
-**What was built:** Cycle tracking for rotation clusters — starting the first 
-cycle, completing a cycle and advancing to the next position in order, 
-stopping cleanly at "rotation complete" instead of wrapping around, and 
-shared-slot co-collector support (slots.is_shared, set_slot_members()).
+**What was built:** Turns slot assignments into an actual, trackable rotation, using the existing `cycles` table (real column names `slot_id`/`start_date`/`end_date`, not the `collector_slot_id`/`cycle_date` naming from the request — no rename, just first real use). A `/clusters/[id]/cycles` page: starts the first cycle (cycle 1, position 1, status `active`), completes the current cycle and advances to the next position in order, and — when the current collector slot is the last position — does *not* create a new cycle, instead marking the cluster's rotation complete ("Rotation complete — all positions have collected.", no auto-wrap to position 1). Both transitions are single Postgres functions (`start_first_cycle`, `advance_cycle`) called via `supabase.rpc(...)`, not sequential app-level writes — the same atomicity discipline as the Slice 4b fix, applied proactively this time instead of after a live bug. Also adds shared-slot co-collector support: `slots.is_shared` and `set_slot_members(slot_id, member_id[])`, generalizing the old single-member `reassign_slot_member` — a prerequisite gap found during scoping, since Slice 4a only ever supported one member per slot. Confirmed the existing protected-head trigger composes correctly with multi-member inserts (every co-collector on a shared protected position must individually be Tier 3), rather than assuming it.
 
-**Bug found and fixed:** Completing the final cycle of a rotation (no next 
-cycle to advance to) wrote end_date = today's date regardless of the cycle's 
-own start_date, producing an impossible end-before-start date when the final 
-cycle's start_date was in the future. Root cause: advance_cycle fell back to 
-coalesce(p_next_start_date, current_date) unconditionally. Fixed by computing 
-one completion date used consistently for both the completed cycle's end_date 
-and the new cycle's start_date, rejecting admin-supplied dates earlier than 
-the cycle's own start, and adding a CHECK constraint on cycles so this class 
-of bug can't recur from any code path. Migration: 
-20260723020000_fix_cycle_end_date_ordering.sql.
+**Guard rails:** only one `active` cycle per cluster, enforced two ways — the app-level check inside `advance_cycle`/`start_first_cycle` (clear error messages), and independently at the DB level via a partial unique index (`cycles_one_active_per_cluster on cycles (cluster_id) where status = 'active'`), confirmed live by bypassing the app entirely with a direct SQL insert attempt. An already-`completed` cycle cannot be re-completed or re-advanced. `clusters.status` (unused since Entry 1) now gets real meaning: `active` on first cycle start, `completed` when the rotation has no next position left.
 
-**How it was verified:** Ran the full 5-step test plan live. Steps 1-3 
-(start first cycle, complete & advance, stop at rotation end) confirmed on 
-Cluster 66. The date bug above was caught during step 3 testing, fixed, and 
-re-verified. Step 5 (guard rails) tested by bypassing the app entirely — 
-direct SQL calls against the live production database:
-- Re-advancing an already-completed cycle → correctly rejected 
-  ("This cycle is not active and cannot be advanced").
-- Inserting a second active cycle for a cluster that already has one → 
-  correctly rejected at the database level by a unique constraint 
-  (cycles_one_active_per_cluster), not just app-level logic.
+**Migrations:** `20260723000000_add_slot_sharing.sql`, `20260723010000_cycle_management.sql`.
 
-**Test 4 confirmed:** Created a fresh unprotected shared position (Position 3) 
-on a throwaway test cluster, assigned two members via the checkbox interface, 
-and confirmed both persist as co-collectors after a hard refresh. Also 
-confirmed (bonus check) that the Tier 3 protected-head rule correctly applies 
-to every co-collector on a shared *protected* position — attempting to include 
-a Tier 1 member alongside a Tier 3 member on Position 2 was correctly rejected.
+**Bug found and fixed live — end_date before start_date on the final cycle:** Completing the final cycle of a rotation (no next cycle to advance to) with the date field left blank wrote `end_date = today`, with no regard for the cycle's own `start_date` — producing an impossible end-before-start row whenever that cycle's `start_date` had been set later than today (e.g. a future-dated cycle from earlier manual testing, caught on Cluster 66). Root cause: `p_next_start_date` genuinely doesn't apply when there's no next cycle, yet `advance_cycle` used the same `coalesce(p_next_start_date, current_date)` fallback regardless. Fixed by computing one completion date used for *both* the completed cycle's `end_date` and the new cycle's `start_date`, floored to the current cycle's own `start_date` by default, and rejecting (rather than silently coercing) an explicit date earlier than the cycle's own start. Also added a `CHECK (end_date is null or end_date >= start_date)` constraint for defense in depth, with a one-time backfill of the existing bad row so the constraint didn't fail on data the old code already wrote. Migration: `20260723020000_fix_cycle_end_date_ordering.sql`.
 
-**Status:** ✅ All 5 tests passed. Ready to merge PR #11.
+**How it was verified:** Both cycle-management migrations re-run against local Postgres alongside the full existing sequence before ever going live — no conflicts. Full 3-position lifecycle (2 protected heads + 1 shared tail) run directly against the real RPCs locally first: start, block-duplicate-start, advance, block-re-advance-of-completed, shared co-collector display, end-of-rotation. Then the full 5-step test plan run live on Cluster 66: steps 1–3 (start first cycle, complete & advance, stop at rotation end) confirmed; the end_date bug was caught during step 3, reproduced locally, fixed, and re-verified live; step 4 confirmed by creating a fresh unprotected shared position, assigning two members via the checkbox interface, and confirming both persist as co-collectors after a hard refresh (plus a bonus check that the Tier 3 rule correctly rejects a Tier 1 member sharing a *protected* position); step 5's guard rails confirmed by bypassing the app entirely with direct SQL against the live production database — re-advancing an already-completed cycle correctly rejected, and inserting a second active cycle for a cluster that already has one correctly rejected at the database level by the unique constraint, not just app logic. `npm run build`/`lint`/`tsc --noEmit` all clean throughout.
+**Status:** ✅ All 5 tests passed live. Ready to merge PR #11.

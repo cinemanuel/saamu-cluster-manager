@@ -40,6 +40,11 @@ export function SlotForm({
         />
       </div>
 
+      <label className="flex items-center gap-2 text-sm">
+        <input id="is_shared" name="is_shared" type="checkbox" />
+        Shared position (multiple collectors)
+      </label>
+
       <button
         type="submit"
         disabled={pending}

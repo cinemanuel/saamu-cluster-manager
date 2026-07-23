@@ -8,11 +8,13 @@ const initialState: SlotFormState = { error: null }
 export function AssignMemberForm({
   action,
   members,
-  currentMemberId,
+  currentMemberIds,
+  isShared,
 }: {
   action: (prevState: SlotFormState, formData: FormData) => Promise<SlotFormState>
   members: { id: string; full_name: string }[]
-  currentMemberId: string | null
+  currentMemberIds: string[]
+  isShared: boolean
 }) {
   const [state, formAction, pending] = useActionState(action, initialState)
 
@@ -21,29 +23,48 @@ export function AssignMemberForm({
   }
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
-      <select
-        name="member_id"
-        defaultValue={currentMemberId ?? ''}
-        className="rounded border border-black/15 px-2 py-1 text-sm dark:border-white/20 dark:bg-transparent"
-      >
-        <option value="" disabled>
-          Unassigned
-        </option>
-        {members.map((member) => (
-          <option key={member.id} value={member.id}>
-            {member.full_name}
+    <form action={formAction} className="flex flex-col gap-2">
+      {isShared ? (
+        <div className="flex flex-col gap-1">
+          {members.map((member) => (
+            <label key={member.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="member_ids"
+                value={member.id}
+                defaultChecked={currentMemberIds.includes(member.id)}
+              />
+              {member.full_name}
+            </label>
+          ))}
+        </div>
+      ) : (
+        <select
+          name="member_ids"
+          defaultValue={currentMemberIds[0] ?? ''}
+          className="rounded border border-black/15 px-2 py-1 text-sm dark:border-white/20 dark:bg-transparent"
+        >
+          <option value="" disabled>
+            Unassigned
           </option>
-        ))}
-      </select>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded border border-black/15 px-2 py-1 text-sm disabled:opacity-50 dark:border-white/20"
-      >
-        {pending ? 'Saving…' : 'Assign'}
-      </button>
-      {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
+          {members.map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.full_name}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded border border-black/15 px-2 py-1 text-sm disabled:opacity-50 dark:border-white/20"
+        >
+          {pending ? 'Saving…' : 'Assign'}
+        </button>
+        {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
+      </div>
     </form>
   )
 }
