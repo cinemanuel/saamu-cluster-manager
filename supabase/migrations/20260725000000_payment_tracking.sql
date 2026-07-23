@@ -53,6 +53,8 @@ create policy "Coordinators manage their own payments"
   using (
     public.is_admin() and not public.is_super_admin()
     and public.owns_cluster((select cluster_id from public.cycles where id = cycle_id))
+    and (select cluster_id from public.members where id = member_id)
+        = (select cluster_id from public.cycles where id = cycle_id)
   )
   with check (
     public.is_admin() and not public.is_super_admin()
