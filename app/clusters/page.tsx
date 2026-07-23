@@ -18,12 +18,12 @@ export default async function ClustersPage() {
   // coordinator this just redundantly shows their own email on every
   // row, since RLS already limits them to their own clusters.
   const ownerIds = Array.from(new Set((clusters ?? []).map((cluster) => cluster.owner_id)))
-  let owners: { user_id: string; email: string }[] = []
+  let owners: { id: string; email: string }[] = []
   if (ownerIds.length > 0) {
     const { data } = await supabase.rpc('get_user_emails', { p_user_ids: ownerIds })
     owners = data ?? []
   }
-  const emailByOwnerId = new Map(owners.map((owner) => [owner.user_id, owner.email]))
+  const emailByOwnerId = new Map(owners.map((owner) => [owner.id, owner.email]))
 
   return (
     <>

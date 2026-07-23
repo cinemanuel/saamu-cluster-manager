@@ -106,3 +106,63 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 **Migration:** `20260724000000_multi_tenancy.sql` — `admin_users.role`, `clusters.owner_id` (nullable → backfilled to the earliest existing admin, matching the `kyc_tier` backfill pattern, with an explicit `raise exception` guard if `admin_users` were ever empty → `not null`), `is_super_admin()`, `owns_cluster()`, `get_user_emails()`, and the 12 replacement policies (2 per table × 6 tables).
 **How it was verified:** Full migration sequence re-run locally from scratch — no conflicts. Built two coordinators (A, B) and a super-admin, each a real simulated session (not just role-checked in the abstract), and ran the full matrix directly against the database: A sees only A's cluster/members; A's `UPDATE` on B's cluster affects 0 rows; A's `INSERT` faking B's `owner_id` is rejected by `WITH CHECK`; A can't even enumerate B's cluster id to attack it (B is invisible via `SELECT` before any write is attempted), and a direct attempt using B's id obtained out-of-band is still rejected via `owns_cluster()`; the harder subquery-based policies (`slot_members`, `payments`, which derive ownership through a nested `slots`/`cycles` lookup rather than a direct column) verified the same way, including confirming RLS on those inner tables composes correctly rather than assumed; the super-admin sees both coordinators' clusters, members, `slot_members`, and payments, but every write attempt is blocked — including creating a brand-new cluster owned by itself, the specific edge case the extra `not is_super_admin()` guard exists for. Also confirmed the Slice 5 RPCs (`start_first_cycle`) correctly compose with the new isolation: a coordinator attempting to start a cycle for another's cluster fails cleanly (0 cycles created), while their own cluster still works normally. `admin_users.role`'s check constraint rejects an invalid value. `npm run build`/`lint`/`tsc --noEmit` all clean. Local dev server: unauthenticated requests to `/clusters` still correctly redirect (303) to `/login`.
 **Status:** 🚧 Pending live verification — PR #11 (Slice 5) has since merged; this branch was merged with the resulting `main` (one conflict, in this file, resolved) and its diff now reflects only the multi-tenancy changes
+
+---
+
+## Entry 6: Multi-tenancy with super-admin oversight
+
+**Status:** Ready to merge
+
+**What shipped:**
+- `clusters.owner_id` (not null, references `auth.users`) — the tenant boundary,
+  set once at creation, never transferred
+- `admin_users.role` (`coordinator` | `super_admin`, default `coordinator`)
+- RLS policies on every domain table: coordinators can do anything to their own
+  data only; super-admins can SELECT (read-only) across everyone's data
+- `createCluster` now stamps `owner_id` from the session
+- `get_user_emails()` RPC resolves owner IDs to emails for oversight display
+
+**Verification process:**
+1. Manual live testing on the PR's Vercel preview URL (not production — an
+   earlier attempt against production surfaced a false-positive RLS violation
+   caused by testing unmerged code against already-migrated policies)
+2. Confirmed: Coordinator B creates a cluster → correct `owner_id` set, visible
+   only to her
+3. Confirmed: super-admin sees all clusters across coordinators (read access)
+4. Installed CodeRabbit (first use on this repo) for automated review as a
+   second pass alongside manual testing
+
+**Bugs found and fixed (via CodeRabbit + manual triage):**
+
+1. **Missing cross-cluster relationship checks** (Major, security) —
+   `slot_members` and `cycles` policies verified the coordinator owned the
+   *referenced* cluster, but never checked that the *linked* record
+   (`member_id`, `slot_id`) actually belonged to that same cluster. A
+   coordinator could link records across tenants via a direct API request with
+   a known cross-tenant UUID, bypassing UI-level isolation. Fixed by adding
+   relationship checks to `WITH CHECK` on both policies.
+
+2. **`get_user_emails()` email leak** (Major, security) — the function gated
+   on `is_admin()`, which is true for both coordinators and super-admins, so
+   any coordinator could pass arbitrary UUIDs and retrieve other tenants'
+   emails. Fixed by restricting non-super-admin callers to their own
+   `auth.uid()` only.
+
+3. **Owner column silently blank** (functional) — found incidentally while
+   updating the migration file: `get_user_emails()` returns a column named
+   `id`, but `page.tsx` read `owner.user_id` from the result, so the Owner
+   column would resolve to `undefined` and render blank with no error. Fixed
+   by updating `page.tsx` to read `owner.id`.
+
+**Fix verification:** each fix applied live to production first, validated via
+direct SQL, then backported into the migration file so a fresh environment
+would create the policies/function correctly from scratch (no drop-then-patch
+in the file itself). CodeRabbit re-run after both fixes landed — clean, no
+remaining findings.
+
+**Key process note:** manual UI-level testing (can Coordinator B see/create
+her own clusters) did not surface either security bug — both required a
+direct-API-request framing (crafted cross-tenant UUIDs) that automated review
+caught and manual testing wouldn't have naturally exercised. Worth keeping
+CodeRabbit (or equivalent) as a standing second pass on future RLS/auth
+changes, not just this one.
