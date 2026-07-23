@@ -126,43 +126,38 @@ A running record of what was built, when, and how — using AI-assisted ("vibe c
 1. Manual live testing on the PR's Vercel preview URL (not production — an
    earlier attempt against production surfaced a false-positive RLS violation
    caused by testing unmerged code against already-migrated policies)
-2. Confirmed: Coordinator B creates a cluster → correct `owner_id` set, visible
+2. Confirmed: Coordinator B creates a cluster — correct `owner_id` set, visible
    only to her
 3. Confirmed: super-admin sees all clusters across coordinators (read access)
 4. Installed CodeRabbit (first use on this repo) for automated review as a
    second pass alongside manual testing
 
-**Bugs found and fixed (via CodeRabbit + manual triage):**
+**Bugs found and fixed:**
 
-1. **Missing cross-cluster relationship checks** (Major, security) —
-   `slot_members` and `cycles` policies verified the coordinator owned the
-   *referenced* cluster, but never checked that the *linked* record
-   (`member_id`, `slot_id`) actually belonged to that same cluster. A
-   coordinator could link records across tenants via a direct API request with
-   a known cross-tenant UUID, bypassing UI-level isolation. Fixed by adding
-   relationship checks to `WITH CHECK` on both policies.
+1. Missing cross-cluster relationship checks (Major, security) — `slot_members`
+   and `cycles` policies verified the coordinator owned the referenced cluster,
+   but never checked that the linked record (`member_id`, `slot_id`) actually
+   belonged to that same cluster. A coordinator could link records across
+   tenants via a direct API request with a known cross-tenant UUID. Fixed by
+   adding relationship checks to `WITH CHECK` on both policies.
 
-2. **`get_user_emails()` email leak** (Major, security) — the function gated
-   on `is_admin()`, which is true for both coordinators and super-admins, so
-   any coordinator could pass arbitrary UUIDs and retrieve other tenants'
-   emails. Fixed by restricting non-super-admin callers to their own
-   `auth.uid()` only.
+2. `get_user_emails()` email leak (Major, security) — the function gated on
+   `is_admin()`, true for both coordinators and super-admins, so any
+   coordinator could pass arbitrary UUIDs and retrieve other tenants' emails.
+   Fixed by restricting non-super-admin callers to their own `auth.uid()` only.
 
-3. **Owner column silently blank** (functional) — found incidentally while
-   updating the migration file: `get_user_emails()` returns a column named
-   `id`, but `page.tsx` read `owner.user_id` from the result, so the Owner
-   column would resolve to `undefined` and render blank with no error. Fixed
-   by updating `page.tsx` to read `owner.id`.
+3. Owner column silently blank (functional) — found while updating the
+   migration file: `get_user_emails()` returns a column named `id`, but
+   `page.tsx` read `owner.user_id` from the result, so the Owner column
+   resolved to `undefined` with no error. Fixed by updating `page.tsx` to
+   read `owner.id`.
 
 **Fix verification:** each fix applied live to production first, validated via
 direct SQL, then backported into the migration file so a fresh environment
-would create the policies/function correctly from scratch (no drop-then-patch
-in the file itself). CodeRabbit re-run after both fixes landed — clean, no
-remaining findings.
+would create the policies/function correctly from scratch. CodeRabbit re-run
+after both security fixes landed — clean, no remaining findings.
 
-**Key process note:** manual UI-level testing (can Coordinator B see/create
-her own clusters) did not surface either security bug — both required a
-direct-API-request framing (crafted cross-tenant UUIDs) that automated review
-caught and manual testing wouldn't have naturally exercised. Worth keeping
-CodeRabbit (or equivalent) as a standing second pass on future RLS/auth
-changes, not just this one.
+**Key process note:** manual UI-level testing did not surface either security
+bug — both required a direct-API-request framing (crafted cross-tenant UUIDs)
+that automated review caught and manual testing wouldn't naturally exercise.
+Worth keeping CodeRabbit as a standing second pass on future RLS/auth changes.
