@@ -45,6 +45,19 @@ export default async function CyclesPage({
       ? await supabase.from('slot_members').select('slot_id, member_id').in('slot_id', slotIds)
       : { data: [] }
 
+  const cycleIds = (cycles ?? []).map((cycle) => cycle.id)
+  const { data: payments } =
+    cycleIds.length > 0
+      ? await supabase.from('payments').select('cycle_id, status').in('cycle_id', cycleIds)
+      : { data: [] }
+
+  const outstandingByCycleId = new Map<string, number>()
+  for (const payment of payments ?? []) {
+    if (payment.status === 'pending') {
+      outstandingByCycleId.set(payment.cycle_id, (outstandingByCycleId.get(payment.cycle_id) ?? 0) + 1)
+    }
+  }
+
   const slotById = new Map((slots ?? []).map((slot) => [slot.id, slot]))
   const fullNameByMemberId = new Map((members ?? []).map((member) => [member.id, member.full_name]))
 
@@ -94,6 +107,13 @@ export default async function CyclesPage({
                 </>
               )
             })()}
+            {(outstandingByCycleId.get(activeCycle.id) ?? 0) > 0 && (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+                {`${outstandingByCycleId.get(activeCycle.id)} member${
+                  outstandingByCycleId.get(activeCycle.id) === 1 ? '' : 's'
+                } still owe for this cycle.`}
+              </p>
+            )}
             <AdvanceCycleForm action={advanceCycle.bind(null, id, activeCycle.id)} />
           </div>
         ) : (
@@ -110,6 +130,7 @@ export default async function CyclesPage({
                 <th className="py-2 font-medium">Status</th>
                 <th className="py-2 font-medium">Start</th>
                 <th className="py-2 font-medium">End</th>
+                <th className="py-2 font-medium">Payments</th>
               </tr>
             </thead>
             <tbody>
@@ -127,6 +148,11 @@ export default async function CyclesPage({
                     <td className="py-2 capitalize">{cycle.status}</td>
                     <td className="py-2">{cycle.start_date}</td>
                     <td className="py-2">{cycle.end_date ?? '—'}</td>
+                    <td className="py-2">
+                      <Link href={`/clusters/${id}/cycles/${cycle.id}/payments`} className="underline">
+                        View payments
+                      </Link>
+                    </td>
                   </tr>
                 )
               })}
