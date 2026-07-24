@@ -133,7 +133,7 @@ export default async function CyclePaymentsPage({
                     </td>
                     <td className="py-2 align-top">
                       {payment.status === 'paid'
-                        ? `${payment.paid_at ?? '—'} (${payment.payment_method ?? '—'})`
+                        ? `${payment.paid_at ? payment.paid_at.slice(0, 10) : '—'} (${payment.payment_method ?? '—'})`
                         : '—'}
                     </td>
                     <td className="py-2 align-top">
