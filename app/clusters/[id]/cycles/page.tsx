@@ -9,10 +9,13 @@ import { startFirstCycle, advanceCycle } from './actions'
 
 export default async function CyclesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ warning?: string }>
 }) {
   const { id } = await params
+  const { warning } = await searchParams
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
@@ -82,7 +85,16 @@ export default async function CyclesPage({
           ← Back to {cluster.name} rotation positions
         </Link>
 
-        <h1 className="mt-4 text-xl font-semibold">{cluster.name} — Cycles</h1>
+        <div className="mt-4 flex items-center justify-between">
+          <h1 className="text-xl font-semibold">{cluster.name} — Cycles</h1>
+          <Link href={`/clusters/${id}/payouts`} className="text-sm underline">
+            Coordinator payouts
+          </Link>
+        </div>
+
+        {warning && (
+          <p className="mt-4 rounded bg-black/10 px-4 py-3 text-sm dark:bg-white/10">{warning}</p>
+        )}
 
         {rotationComplete ? (
           <p className="mt-6 rounded bg-black/10 px-4 py-3 text-sm font-medium dark:bg-white/10">

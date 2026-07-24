@@ -9,7 +9,7 @@ export default async function ClustersPage() {
 
   const { data: clusters } = await supabase
     .from('clusters')
-    .select('id, name, contribution_amount, fee_amount, frequency, status, owner_id')
+    .select('id, name, contribution_amount, fee_type, fee_value, frequency, status, owner_id')
     .order('created_at', { ascending: false })
 
   // Resolving owner_id to an email so cross-coordinator oversight
@@ -58,7 +58,13 @@ export default async function ClustersPage() {
                   <td className="py-2">{cluster.name}</td>
                   <td className="py-2">{emailByOwnerId.get(cluster.owner_id) ?? '—'}</td>
                   <td className="py-2">{Number(cluster.contribution_amount).toFixed(2)}</td>
-                  <td className="py-2">{Number(cluster.fee_amount).toFixed(2)}</td>
+                  <td className="py-2">
+                    {cluster.fee_type === 'none'
+                      ? 'No fee'
+                      : cluster.fee_type === 'percentage'
+                        ? `${Number(cluster.fee_value)}%`
+                        : Number(cluster.fee_value).toFixed(2)}
+                  </td>
                   <td className="py-2 capitalize">{cluster.frequency}</td>
                   <td className="py-2 capitalize">{cluster.status}</td>
                   <td className="py-2 text-right">
@@ -70,6 +76,9 @@ export default async function ClustersPage() {
                     </Link>{' '}
                     <Link href={`/clusters/${cluster.id}/cycles`} className="ml-2 underline">
                       Cycles
+                    </Link>{' '}
+                    <Link href={`/clusters/${cluster.id}/payouts`} className="ml-2 underline">
+                      Payouts
                     </Link>{' '}
                     <Link href={`/clusters/${cluster.id}/edit`} className="ml-2 underline">
                       Edit

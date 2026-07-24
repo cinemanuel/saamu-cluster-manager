@@ -16,7 +16,7 @@ export default async function EditClusterPage({
 
   const { data: cluster } = await supabase
     .from('clusters')
-    .select('name, contribution_amount, fee_amount, frequency')
+    .select('name, contribution_amount, fee_type, fee_value, frequency')
     .eq('id', id)
     .single()
 
