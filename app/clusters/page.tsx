@@ -7,7 +7,7 @@ export default async function ClustersPage() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
-  const { data: clusters } = await supabase
+  const { data: clusters, error: clustersError } = await supabase
     .from('clusters')
     .select('id, name, contribution_amount, fee_type, fee_value, frequency, status, owner_id')
     .order('created_at', { ascending: false })
@@ -39,7 +39,11 @@ export default async function ClustersPage() {
           </Link>
         </div>
 
-        {clusters && clusters.length > 0 ? (
+        {clustersError ? (
+          <p className="mt-6 text-sm text-red-600 dark:text-red-400">
+            Could not load clusters: {clustersError.message}
+          </p>
+        ) : clusters && clusters.length > 0 ? (
           <table className="mt-6 w-full text-left text-sm">
             <thead>
               <tr className="border-b border-black/10 dark:border-white/15">
