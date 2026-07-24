@@ -31,23 +31,23 @@ export default async function ClusterPayoutsPage({
   const { data: members } = await supabase.from('members').select('id, full_name').eq('cluster_id', id)
 
   const cycleIds = (cycles ?? []).map((cycle) => cycle.id)
-  const { data: payouts } =
+  const { data: payouts, error: payoutsError } =
     cycleIds.length > 0
       ? await supabase
           .from('payouts')
           .select('id, cycle_id, total_pot, fee_amount, net_payout, payout_date')
           .in('cycle_id', cycleIds)
           .order('payout_date', { ascending: false })
-      : { data: [] }
+      : { data: [], error: null }
 
   const payoutIds = (payouts ?? []).map((payout) => payout.id)
-  const { data: transactions } =
+  const { data: transactions, error: transactionsError } =
     payoutIds.length > 0
       ? await supabase
           .from('payout_transactions')
           .select('payout_id, type, member_id, amount')
           .in('payout_id', payoutIds)
-      : { data: [] }
+      : { data: [], error: null }
 
   const cycleById = new Map((cycles ?? []).map((cycle) => [cycle.id, cycle]))
   const fullNameByMemberId = new Map((members ?? []).map((member) => [member.id, member.full_name]))
@@ -62,7 +62,9 @@ export default async function ClusterPayoutsPage({
     }
   }
 
-  const totalFeesCollected = (payouts ?? []).reduce((sum, payout) => sum + Number(payout.fee_amount), 0)
+  const totalFeesCollected = payoutsError
+    ? null
+    : (payouts ?? []).reduce((sum, payout) => sum + Number(payout.fee_amount), 0)
 
   // "Upcoming payout" — the active cycle's projected figures, using the
   // exact same fee formula that will be used when it actually completes,
@@ -70,28 +72,33 @@ export default async function ClusterPayoutsPage({
   const activeCycle = (cycles ?? []).find((cycle) => cycle.status === 'active') ?? null
   let upcoming: { totalPot: number; feeAmount: number; netPayout: number; collectorCount: number } | null =
     null
+  let upcomingError: string | null = null
 
   if (activeCycle) {
     const memberCount = (members ?? []).length
     const totalPot = memberCount * Number(cluster.contribution_amount)
 
-    const { data: feeAmountData } = await supabase.rpc('calculate_coordinator_fee', {
+    const { data: feeAmountData, error: feeError } = await supabase.rpc('calculate_coordinator_fee', {
       p_fee_type: cluster.fee_type,
       p_fee_value: cluster.fee_value,
       p_total_pot: totalPot,
     })
-    const feeAmount = Number(feeAmountData ?? 0)
 
-    const { data: slotMembers } = await supabase
+    const { data: slotMembers, error: slotMembersError } = await supabase
       .from('slot_members')
       .select('member_id')
       .eq('slot_id', activeCycle.slot_id)
 
-    upcoming = {
-      totalPot,
-      feeAmount,
-      netPayout: totalPot - feeAmount,
-      collectorCount: (slotMembers ?? []).length,
+    if (feeError || slotMembersError) {
+      upcomingError = (feeError ?? slotMembersError)?.message ?? 'Could not load the upcoming payout.'
+    } else {
+      const feeAmount = Number(feeAmountData ?? 0)
+      upcoming = {
+        totalPot,
+        feeAmount,
+        netPayout: totalPot - feeAmount,
+        collectorCount: (slotMembers ?? []).length,
+      }
     }
   }
 
@@ -105,54 +112,80 @@ export default async function ClusterPayoutsPage({
 
         <h1 className="mt-4 text-xl font-semibold">{cluster.name} — Coordinator payouts</h1>
 
-        {upcoming && (
+        {activeCycle && (
           <div className="mt-6">
             <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Upcoming payout</h2>
-            <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-4">
-              <div>
-                <p className="text-zinc-600 dark:text-zinc-400">Total pot</p>
-                <p className="font-medium">{upcoming.totalPot.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
-                <p className="font-medium">{upcoming.feeAmount.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-zinc-600 dark:text-zinc-400">Net payout</p>
-                <p className="font-medium">{upcoming.netPayout.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-zinc-600 dark:text-zinc-400">Contribution frequency</p>
-                <p className="font-medium capitalize">{cluster.frequency}</p>
-              </div>
-            </div>
-            {upcoming.collectorCount !== 1 && (
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                This position currently has {upcoming.collectorCount} collector
-                {upcoming.collectorCount === 1 ? '' : 's'} — a payout won&apos;t be automatically
-                recorded when this cycle completes (shared-slot payouts aren&apos;t supported yet).
+            {upcomingError ? (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                Could not load the upcoming payout: {upcomingError}
               </p>
-            )}
+            ) : upcoming ? (
+              <>
+                <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-4">
+                  <div>
+                    <p className="text-zinc-600 dark:text-zinc-400">Total pot</p>
+                    <p className="font-medium">{upcoming.totalPot.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
+                    <p className="font-medium">{upcoming.feeAmount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-600 dark:text-zinc-400">Net payout</p>
+                    <p className="font-medium">{upcoming.netPayout.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-600 dark:text-zinc-400">Contribution frequency</p>
+                    <p className="font-medium capitalize">{cluster.frequency}</p>
+                  </div>
+                </div>
+                {upcoming.collectorCount !== 1 && (
+                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    This position currently has {upcoming.collectorCount} collector
+                    {upcoming.collectorCount === 1 ? '' : 's'} — a payout won&apos;t be automatically
+                    recorded when this cycle completes (shared-slot payouts aren&apos;t supported yet).
+                  </p>
+                )}
+              </>
+            ) : null}
           </div>
         )}
 
         <div className="mt-6">
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Lifetime totals</h2>
+          {payoutsError && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+              Could not load lifetime totals: {payoutsError.message}
+            </p>
+          )}
           <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20">
             <div>
               <p className="text-zinc-600 dark:text-zinc-400">Total coordinator earnings</p>
-              <p className="font-medium">{totalFeesCollected.toFixed(2)}</p>
+              <p className="font-medium">
+                {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
+              </p>
             </div>
             <div>
               <p className="text-zinc-600 dark:text-zinc-400">Total fees collected</p>
-              <p className="font-medium">{totalFeesCollected.toFixed(2)}</p>
+              <p className="font-medium">
+                {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="mt-6">
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Payout history</h2>
-          {payouts && payouts.length > 0 ? (
+          {transactionsError && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+              Recipient names could not be loaded: {transactionsError.message}
+            </p>
+          )}
+          {payoutsError ? (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+              Could not load payout history: {payoutsError.message}
+            </p>
+          ) : payouts && payouts.length > 0 ? (
             <table className="mt-2 w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-black/10 dark:border-white/15">

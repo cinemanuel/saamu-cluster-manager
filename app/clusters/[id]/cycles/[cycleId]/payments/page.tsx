@@ -59,13 +59,13 @@ export default async function CyclePaymentsPage({
     .reduce((sum, payment) => sum + Number(payment.amount), 0)
   const outstandingCount = (payments ?? []).filter((payment) => payment.status === 'pending').length
 
-  const { data: feeAmountData } = await supabase.rpc('calculate_coordinator_fee', {
+  const { data: feeAmountData, error: feeError } = await supabase.rpc('calculate_coordinator_fee', {
     p_fee_type: cluster.fee_type,
     p_fee_value: cluster.fee_value,
     p_total_pot: pool,
   })
-  const feeAmount = Number(feeAmountData ?? 0)
-  const netPayout = pool - feeAmount
+  const feeAmount = feeError ? null : Number(feeAmountData ?? 0)
+  const netPayout = feeAmount === null ? null : pool - feeAmount
 
   return (
     <>
@@ -94,13 +94,19 @@ export default async function CyclePaymentsPage({
           </div>
           <div>
             <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
-            <p className="font-medium">{feeAmount.toFixed(2)}</p>
+            <p className="font-medium">{feeAmount === null ? 'Unavailable' : feeAmount.toFixed(2)}</p>
           </div>
           <div>
             <p className="text-zinc-600 dark:text-zinc-400">Net payout after fee</p>
-            <p className="font-medium">{netPayout.toFixed(2)}</p>
+            <p className="font-medium">{netPayout === null ? 'Unavailable' : netPayout.toFixed(2)}</p>
           </div>
         </div>
+
+        {feeError && (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            Could not calculate the coordinator fee: {feeError.message}
+          </p>
+        )}
 
         {members && members.length > 0 ? (
           <table className="mt-6 w-full text-left text-sm">

@@ -273,6 +273,10 @@ begin
     v_fee_amount := public.calculate_coordinator_fee(v_fee_type, v_fee_value, v_total_pot);
     v_net_payout := v_total_pot - v_fee_amount;
 
+    if v_net_payout < 0 then
+      raise exception 'Coordinator fee (%) exceeds the total pot (%).', v_fee_amount, v_total_pot;
+    end if;
+
     select member_id into v_collector_member_id
     from public.slot_members
     where slot_id = v_current_slot_id;
