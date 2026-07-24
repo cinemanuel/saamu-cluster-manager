@@ -90,3 +90,25 @@ $$;
 create trigger cycles_create_payments
   after insert on public.cycles
   for each row execute function public.create_cycle_payments();
+
+-- ---------------------------------------------------------------------
+-- Backfill: the trigger above only fires for cycles created from now
+-- on. Any cluster whose rotation was already active before this
+-- migration ran would otherwise show zero payment rows for its current
+-- cycle forever, since a cycle isn't re-inserted when it advances (the
+-- old row is updated to 'completed' and a new row inserted only for
+-- the *next* cycle). Scoped to 'active' cycles only — a completed
+-- cycle is already-closed history, and retroactively inventing pending
+-- obligations for a finished rotation would be confusing, not useful.
+-- NOT EXISTS makes this safe to run more than once.
+-- ---------------------------------------------------------------------
+
+insert into public.payments (cycle_id, member_id, amount, status, due_date)
+select c.id, m.id, cl.contribution_amount, 'pending', c.start_date
+from public.cycles c
+join public.clusters cl on cl.id = c.cluster_id
+join public.members m on m.cluster_id = c.cluster_id
+where c.status = 'active'
+  and not exists (
+    select 1 from public.payments p where p.cycle_id = c.id and p.member_id = m.id
+  );
