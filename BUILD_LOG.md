@@ -152,3 +152,38 @@ after both security fixes landed — clean, no remaining findings.
 bug — both required a direct-API-request framing (crafted cross-tenant UUIDs)
 that automated review caught and manual testing wouldn't naturally exercise.
 Worth keeping CodeRabbit as a standing second pass on future RLS/auth changes.
+
+---
+
+## Entry 7: Payment/contribution tracking
+
+**Status:** Ready to merge
+
+**What shipped:**
+- `payments.due_date` (new column, set to the owning cycle's `start_date`)
+- `payments.payment_method` restricted to `cash` / `bank_transfer` / `mobile_money` via check constraint
+- RLS fix on the "Coordinators manage their own payments" policy: both `USING` and `WITH CHECK` now verify the linked `member_id` belongs to the same cluster as `cycle_id`
+- New trigger auto-creates one `pending` payment row per cluster member whenever a cycle is created (`amount = contribution_amount`, `due_date = cycle.start_date`) — every member pays every cycle, no one excluded, including that cycle's own collector
+- New `/clusters/[id]/cycles/[cycleId]/payments` page: per-member payment status (amount, due date, status with a live-computed "Late" badge for pending payments past due date — never written to the DB, so no scheduled job is needed), Mark Paid / Waive / Revert to pending actions, and a summary block (pool, collected so far, outstanding count, net payout after the flat fee)
+- Cycles page: a "View payments" link per cycle, and a non-blocking "N members still owe" notice near the active cycle's Complete & Advance button
+
+**Verification process:**
+1. Full migration sequence re-run locally from scratch (local Postgres with a minimal `auth` schema stub, since no Supabase CLI/credentials are available in this environment) — no conflicts
+2. Direct-database tests: `start_first_cycle`/`advance_cycle` confirmed to auto-create correct payment rows; cross-cluster RLS attack (linking another cluster's member to this cluster's cycle) correctly rejected as a non-superuser `authenticated` role; invalid `payment_method` correctly rejected by the check constraint
+3. CodeRabbit review on the PR, alongside manual triage of each finding
+4. `npm run build`, `npm run lint`, `tsc --noEmit` all clean throughout
+5. Live click-through on the Vercel preview: Mark Paid, Waive, and Revert to pending all confirmed working, pool/collected/outstanding math confirmed accurate
+
+**Bugs found and fixed:**
+
+1. **Backfill gap for pre-existing cycles** (functional) — found during live click-through testing: the `cycles_create_payments` trigger only fires on `INSERT`, so it never applied to a cycle that was already active before this migration ran. Test Cluster's existing Cycle 1 showed both members as "No payment record for this cycle" and Outstanding as 0, instead of Pending/2 — because the row genuinely didn't exist yet. Fixed by adding a one-time backfill (scoped to `active` cycles only, guarded with `NOT EXISTS` so it's safe to re-run) that creates the missing rows for any cycle already in progress.
+
+2. **`USING` clause missing the same relationship check as `WITH CHECK`** (Major, security, via CodeRabbit) — `WITH CHECK` blocked new or updated cross-cluster mismatches, but `USING` still exposed (and permitted deleting) an existing malformed cross-cluster payment row to the cycle's coordinator. Fixed by adding the same member-cluster equality predicate to `USING`. Verified locally: a row inserted directly (bypassing RLS) linking another cluster's member to this cluster's cycle is now correctly invisible under the coordinator's own `SELECT`.
+
+3. **Paid date rendered as a raw ISO timestamp** (cosmetic) — found during live click-through: `paid_at` is `timestamptz`, so it displayed as `2026-07-24T00:00:00+00:00` instead of a readable date, even though only a date is ever written to it. Fixed by slicing to the date portion, matching how `due_date`/`start_date`/`end_date` are already displayed elsewhere.
+
+**CodeRabbit findings investigated and not applied:**
+- Flagged `netPayout` as using the full pool instead of `collected` — this is intentional per the confirmed product spec (`pool − fee_amount` is the structural payout once everyone pays; `collected` already reports the running total separately). CodeRabbit reviewed the explanation and withdrew the finding.
+- Flagged the payments view as being driven by the live `members` list rather than payment rows, in case membership changes later — confirmed this can't currently happen (no member-deletion feature exists, and `payments.member_id` cascades on member delete). CodeRabbit reviewed the explanation and withdrew the finding, noting it's worth revisiting only if member removal/deactivation is added later.
+
+**Key process note:** live click-through testing caught both real bugs (the backfill gap and the timestamp rendering) that automated review and local-database testing didn't — a useful complement to Entry 6's finding that automated review catches what manual testing misses. Neither approach substitutes for the other.
