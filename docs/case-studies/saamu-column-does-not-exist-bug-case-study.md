@@ -11,7 +11,7 @@
 
 A Vercel Preview deployment for PR #14 consistently failed to load the clusters list, showing:
 
-```
+```text
 Could not load clusters: column clusters.fee_type does not exist
 ```
 
@@ -21,7 +21,7 @@ This looked like — and was initially treated as — a PostgREST schema cache i
 
 Vercel Preview for branch `claude/payout-fee-system` returned:
 
-```
+```text
 Could not load clusters: column clusters.fee_type does not exist
 ```
 
@@ -51,6 +51,8 @@ This occurred despite an earlier belief — stated at the start of this debuggin
 
 ## Fix
 
+This is the emergency interim patch applied live, in isolation, to confirm the diagnosis and unblock testing — **not** the canonical remediation:
+
 ```sql
 ALTER TABLE public.clusters
   ADD COLUMN fee_type text,
@@ -58,6 +60,8 @@ ALTER TABLE public.clusters
 ```
 
 Re-querying `information_schema.columns` confirmed 13 columns, including both new fields. Reloading the Preview deployment's clusters page confirmed clean data load with no errors.
+
+The actual required fix for any environment is the complete migration already committed at `supabase/migrations/20260726000000_coordinator_payout_fee.sql`, which additionally backfills `fee_type`/`fee_value` from the legacy `fee_amount` column, locks `fee_type` to `not null`, adds the check constraints validating the fee configuration, and drops `fee_amount`. The bare `ALTER TABLE` above, applied on its own with no backfill or constraints, would leave existing clusters with `fee_type`/`fee_value` both `null` — an invalid state the app's validation doesn't expect. Applying only this interim snippet should never be treated as a substitute for running the full migration.
 
 ## Root Cause
 
