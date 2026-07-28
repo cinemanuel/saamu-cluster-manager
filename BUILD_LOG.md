@@ -221,3 +221,27 @@ Worth keeping CodeRabbit as a standing second pass on future RLS/auth changes.
 2. **Interim fix left the rest of the migration unapplied** (Major, functional) — after the fix above, the coordinator payouts page failed with `Could not find the function public.calculate_coordinator_fee` / `Could not find the table 'public.payouts'`, because the interim patch only added the two columns and never ran the rest of the migration (backfill, constraints, the `payouts`/`payout_transactions` tables, the fee function, and the updated `advance_cycle`). Fixed by running the remainder of the migration file directly against the database. This is exactly the risk CodeRabbit had flagged during review of the interim patch — that it wasn't the canonical fix.
 
 **Case study:** both bugs above are documented in detail, including the full investigation timeline for each. See [docs/case-studies/saamu-column-does-not-exist-bug-case-study.md](./docs/case-studies/saamu-column-does-not-exist-bug-case-study.md).
+
+---
+
+## Entry 9: Coordinator dashboard
+
+**Status:** Code complete, pending live verification (no Supabase credentials available in this environment)
+
+**What shipped:**
+- New `/dashboard` page: a cluster switcher (pill row, one per accessible cluster) plus four summary tiles for whichever cluster is selected — cluster status (status, current cycle number, start date), payment status for the active cycle (paid/pending/late/waived counts), upcoming payout (next collector, total pot, coordinator fee, net payout), and lifetime totals (total coordinator earnings / total fees collected)
+- Upcoming payout and lifetime totals reuse the exact query shapes and RPC (`calculate_coordinator_fee`) already verified live on the Entry 8 payouts page; "next collector" name resolution reuses the `slot_members` + `members` join pattern from the Entry 8 cycles page
+- Net payout is clamped at 0 with an explicit "fee exceeds pot" warning whenever the projected fee would exceed the total pot, generalizing `advance_cycle`'s `net_payout < 0` guard (`supabase/migrations/20260726000000_coordinator_payout_fee.sql`) to a live pre-completion projection, which has no such guard of its own to lean on
+- Super-admin switcher spans every coordinator's clusters (same RLS as the clusters list, with owner email shown per pill); the dashboard's one write-capable link ("Edit") is hidden whenever `is_super_admin()` is true — the dashboard is read-only for a super-admin, per Entry 6's pattern
+- "Dashboard" link added to site nav
+- `revalidatePath('/dashboard')` added alongside the existing revalidation in both `startFirstCycle` and `advanceCycle`, so the dashboard doesn't serve a stale client-cached copy immediately after a cycle changes
+- No new migration — every table, RLS policy, and RPC the dashboard reads from already existed from Entries 6-8
+
+**Verification process:**
+1. `tsc --noEmit`, `npm run lint`, `npm run build` all clean
+2. No live click-through — no Supabase credentials available in this environment (same limitation noted in Entries 7-8). Correctness was instead verified by code review against the exact RLS policies and query shapes already confirmed live in those entries; live verification is still outstanding before this is considered done
+3. Test plan scoped against and reviewed case by case: switcher with 0/1/many clusters (empty state, single pill, multi-pill row, defaulting to the most recent cluster unless overridden by `?cluster=`); payment-status counts for 0-paid/all-paid (plain count arithmetic) and draft/completed clusters (both fall into a single "no active cycle" branch, since neither has one); upcoming payout for `fee_type='none'` (hard-coded 0 fee in `calculate_coordinator_fee`) and a shared slot (reuses the payouts page's `collectorCount !== 1` warning verbatim); cross-coordinator URL tampering (the requested cluster ID is looked up from the already RLS-scoped cluster list, not fetched independently, so an inaccessible ID renders "not found" rather than leaking data)
+
+**New edge case surfaced during scoping (added to the test plan before building, not part of the original spec):** a fee that exceeds the total pot — reachable via a `fixed` fee larger than the pot, a `percentage` fee value over 100, or simply a cluster with very few or zero members. `calculate_coordinator_fee` returns the fee regardless of pot size, and unlike `advance_cycle` (which raises and blocks completion), the dashboard shows a live pre-completion projection with no such guard to lean on — fixed by clamping net payout at 0 and showing an explicit warning instead of a raw negative currency figure. This also happens to be exactly what covers the "zero members" case from the original test plan, rather than needing separate handling.
+
+**Known limitation (fast-follow, not fixed in this slice):** no page in this app — the clusters list, cycles page, or per-cycle payments page — currently checks the caller's role before rendering its Edit/Advance/Mark-Paid/Waive buttons. RLS already blocks the write itself for a super-admin, but the button still renders and would surface a raw RLS-violation error if clicked, instead of being hidden. This dashboard is the first page in the codebase to check `is_super_admin()` and hide its one write-capable link; the same treatment still needs to be retrofitted onto the older pages. Flagging it here so it isn't silently dropped — this was a pre-existing gap this slice didn't introduce, deliberately not expanded into scope for Entry 9.

@@ -30,6 +30,7 @@ export async function startFirstCycle(
   }
 
   revalidatePath(`/clusters/${clusterId}/cycles`)
+  revalidatePath('/dashboard')
   redirect(`/clusters/${clusterId}/cycles`)
 }
 
@@ -53,6 +54,7 @@ export async function advanceCycle(
   }
 
   revalidatePath(`/clusters/${clusterId}/cycles`)
+  revalidatePath('/dashboard')
 
   // advance_cycle now returns a warning (e.g. "payout not recorded") on
   // the very cycle that's about to stop being the active one, so the
