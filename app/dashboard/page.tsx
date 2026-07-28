@@ -225,7 +225,7 @@ export default async function DashboardPage({
                           {activeCycle
                             ? activeCycle.start_date
                             : selectedCluster.status === 'completed' && lastCycle
-                              ? (lastCycle.end_date ?? '—')
+                              ? lastCycle.start_date
                               : '—'}
                         </p>
                       </div>
