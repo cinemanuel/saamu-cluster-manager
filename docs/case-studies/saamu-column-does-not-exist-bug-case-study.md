@@ -78,3 +78,41 @@ The migration was never applied. Every earlier remediation attempt (cache reload
 ## Process Note
 
 This investigation was conducted collaboratively: Claude provided the debugging strategy, hypothesis sequencing, and exact step-by-step UI instructions (since execution happened entirely in the browser and Supabase/Vercel dashboards); Claude Code performed the direct repo-level code and migration file audit. The combination allowed ruling out entire categories of causes (code correctness, env var configuration) efficiently before the ground-truth database check surfaced the real issue.
+
+## Addendum: The Fix Was Also Incomplete
+
+After the root-cause fix above (adding `fee_type`/`fee_value` via `ALTER TABLE`) was applied and the clusters list confirmed working, a second, related failure surfaced on the coordinator payouts page:
+
+```text
+Could not load the upcoming payout: Could not find the function
+public.calculate_coordinator_fee(p_fee_type, p_fee_value, p_total_pot) in the schema cache
+
+Could not load lifetime totals: Could not find the table 'public.payouts' in the schema cache
+
+Could not load payout history: Could not find the table 'public.payouts' in the schema cache
+```
+
+### Why This Happened
+
+The original fix only ran the two-column `ALTER TABLE` statement — the smallest possible patch to unblock the clusters list. It did not run the rest of migration `20260726000000_coordinator_payout_fee.sql`, which was also never applied to the database. That file additionally:
+
+- Backfills `fee_type`/`fee_value` for existing clusters from the old `fee_amount` column
+- Adds `NOT NULL`, a default, and validation constraints to `fee_type`/`fee_value`
+- Drops the legacy `fee_amount` column entirely
+- Creates the `calculate_coordinator_fee()` function
+- Creates the `payouts` table (an append-only financial audit trail) and its RLS policies
+- Creates the `payout_transactions` table (per-payout ledger entries) and its RLS policies
+- Grants `select, insert` on both new tables to `authenticated`
+- Drops and recreates `advance_cycle()` so it now records a payout when a cycle completes, returning a warning string instead of nothing
+
+This is exactly what CodeRabbit had flagged as a risk during the earlier PR review — that the interim `ALTER TABLE` patch was not the canonical fix, and that the full migration (including the `fee_amount` backfill and constraints) still needed to run. That review comment turned out to be accurate: the payouts page failure was the direct, predictable consequence of not having done so yet.
+
+### Fix
+
+Ran the remainder of the migration file (everything from the backfill `UPDATE` statement through the end of the redefined `advance_cycle()` function) directly against the database via Supabase SQL Editor, having Claude Code prepare the exact SQL block to copy in order to avoid manual line-hunting in a large file.
+
+Verified by reloading the coordinator payouts page: all three sections now load real data (upcoming payout showing correct pot/fee/net-payout figures; lifetime totals and payout history correctly showing zero/empty for a cluster with no completed cycles yet) with no errors.
+
+### Additional Learning
+
+A partial fix for a missing-object error should prompt a check for what else in the same migration might also be missing, especially when the error message itself only reports the first missing object PostgREST encounters — it does not enumerate every other table or function still absent. Here, fixing `clusters.fee_type`/`fee_value` was necessary but not sufficient; the same migration also introduced two entire new tables and a function, none of which had been created. Before considering a "migration never applied" bug closed, it's worth diffing the full migration file's DDL against the live schema (or, more simply, just running the migration's full remaining content) rather than stopping once the originally-reported error clears.
