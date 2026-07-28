@@ -12,21 +12,25 @@ export default async function DashboardPage({
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
-  const { data: isSuperAdminData } = await supabase.rpc('is_super_admin')
-  const isSuperAdmin = isSuperAdminData === true
+  const [isSuperAdminResult, clustersResult] = await Promise.all([
+    supabase.rpc('is_super_admin'),
+    supabase
+      .from('clusters')
+      .select('id, name, contribution_amount, fee_type, fee_value, status, owner_id')
+      .order('created_at', { ascending: false }),
+  ])
+  const isSuperAdmin = isSuperAdminResult.data === true
+  // A failed role check must not fail open: defaulting to "not super-admin"
+  // on an RPC error would render the Edit link for a real super-admin.
+  const isSuperAdminUnknown = isSuperAdminResult.error !== null
+  const { data: clusters, error: clustersError } = clustersResult
 
-  const { data: clusters, error: clustersError } = await supabase
-    .from('clusters')
-    .select('id, name, contribution_amount, fee_type, fee_value, status, owner_id')
-    .order('created_at', { ascending: false })
-
-  // Same owner-email resolution as the clusters list — for a coordinator
-  // this is redundant (RLS already limits them to their own clusters),
-  // but a super-admin's switcher spans every coordinator and is
-  // unreadable without it.
+  // Same owner-email resolution as the clusters list — only a super-admin's
+  // switcher (spanning every coordinator) ever reads this; skip the round
+  // trip entirely for an ordinary coordinator, whose own email is redundant.
   const ownerIds = Array.from(new Set((clusters ?? []).map((cluster) => cluster.owner_id)))
   let owners: { id: string; email: string }[] = []
-  if (ownerIds.length > 0) {
+  if (isSuperAdmin && ownerIds.length > 0) {
     const { data } = await supabase.rpc('get_user_emails', { p_user_ids: ownerIds })
     owners = data ?? []
   }
@@ -46,40 +50,35 @@ export default async function DashboardPage({
   let payoutsError: { message: string } | null = null
   let feeAmountData: number | null = null
   let feeError: { message: string } | null = null
+  let activeCycle: (typeof cycles)[number] | null = null
+  let totalPot = 0
 
   if (selectedCluster) {
-    const cyclesResult = await supabase
-      .from('cycles')
-      .select('id, cycle_number, slot_id, status, start_date, end_date')
-      .eq('cluster_id', selectedCluster.id)
-      .order('cycle_number', { ascending: true })
+    const [cyclesResult, membersResult] = await Promise.all([
+      supabase
+        .from('cycles')
+        .select('id, cycle_number, slot_id, status, start_date, end_date')
+        .eq('cluster_id', selectedCluster.id)
+        .order('cycle_number', { ascending: true }),
+      supabase.from('members').select('id, full_name').eq('cluster_id', selectedCluster.id),
+    ])
     cycles = cyclesResult.data ?? []
     cyclesError = cyclesResult.error
-
-    const membersResult = await supabase
-      .from('members')
-      .select('id, full_name')
-      .eq('cluster_id', selectedCluster.id)
     members = membersResult.data ?? []
 
-    const activeCycle = cycles.find((cycle) => cycle.status === 'active') ?? null
+    activeCycle = cycles.find((cycle) => cycle.status === 'active') ?? null
+    totalPot = members.length * Number(selectedCluster.contribution_amount)
 
     if (activeCycle) {
-      const paymentsResult = await supabase
-        .from('payments')
-        .select('status, due_date')
-        .eq('cycle_id', activeCycle.id)
+      const [paymentsResult, slotMembersResult] = await Promise.all([
+        supabase.from('payments').select('status, due_date').eq('cycle_id', activeCycle.id),
+        supabase.from('slot_members').select('member_id').eq('slot_id', activeCycle.slot_id),
+      ])
       payments = paymentsResult.data ?? []
       paymentsError = paymentsResult.error
-
-      const slotMembersResult = await supabase
-        .from('slot_members')
-        .select('member_id')
-        .eq('slot_id', activeCycle.slot_id)
       slotMembers = slotMembersResult.data ?? []
       slotMembersError = slotMembersResult.error
 
-      const totalPot = members.length * Number(selectedCluster.contribution_amount)
       const feeResult = await supabase.rpc('calculate_coordinator_fee', {
         p_fee_type: selectedCluster.fee_type,
         p_fee_value: selectedCluster.fee_value,
@@ -100,7 +99,6 @@ export default async function DashboardPage({
       : (payoutsResult.data ?? []).reduce((sum, payout) => sum + Number(payout.fee_amount), 0)
   }
 
-  const activeCycle = cycles.find((cycle) => cycle.status === 'active') ?? null
   const lastCycle = cycles.length > 0 ? cycles[cycles.length - 1] : null
   const fullNameByMemberId = new Map(members.map((member) => [member.id, member.full_name]))
   const collectorNames = slotMembers
@@ -117,7 +115,6 @@ export default async function DashboardPage({
   ).length
   const waivedCount = payments.filter((payment) => payment.status === 'waived').length
 
-  const totalPot = selectedCluster ? members.length * Number(selectedCluster.contribution_amount) : 0
   const rawNetPayout = feeAmountData === null ? null : totalPot - feeAmountData
   // advance_cycle rejects any cycle completion where the fee would exceed
   // the pot (net_payout < 0) rather than recording a negative payout —
@@ -191,7 +188,7 @@ export default async function DashboardPage({
                       write actions for super-admins — RLS blocks the write itself, but
                       the button still renders and would error if clicked. Only this
                       dashboard hides them so far; see BUILD_LOG Entry 9 fast-follow. */}
-                  {!isSuperAdmin && (
+                  {!isSuperAdmin && !isSuperAdminUnknown && (
                     <Link href={`/clusters/${selectedCluster.id}/edit`} className="underline">
                       Edit
                     </Link>
@@ -202,39 +199,49 @@ export default async function DashboardPage({
                   <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                     Cluster status
                   </h2>
-                  <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-3">
-                    <div>
-                      <p className="text-zinc-600 dark:text-zinc-400">Status</p>
-                      <p className="font-medium capitalize">{selectedCluster.status}</p>
+                  {cyclesError ? (
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                      Could not load cluster status: {cyclesError.message}
+                    </p>
+                  ) : (
+                    <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-3">
+                      <div>
+                        <p className="text-zinc-600 dark:text-zinc-400">Status</p>
+                        <p className="font-medium capitalize">{selectedCluster.status}</p>
+                      </div>
+                      <div>
+                        <p className="text-zinc-600 dark:text-zinc-400">Current cycle</p>
+                        <p className="font-medium">
+                          {activeCycle
+                            ? `Cycle ${activeCycle.cycle_number}`
+                            : selectedCluster.status === 'completed' && lastCycle
+                              ? `Completed at cycle ${lastCycle.cycle_number}`
+                              : 'Not started yet'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-zinc-600 dark:text-zinc-400">Start date</p>
+                        <p className="font-medium">
+                          {activeCycle
+                            ? activeCycle.start_date
+                            : selectedCluster.status === 'completed' && lastCycle
+                              ? (lastCycle.end_date ?? '—')
+                              : '—'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-zinc-600 dark:text-zinc-400">Current cycle</p>
-                      <p className="font-medium">
-                        {activeCycle
-                          ? `Cycle ${activeCycle.cycle_number}`
-                          : selectedCluster.status === 'completed' && lastCycle
-                            ? `Completed at cycle ${lastCycle.cycle_number}`
-                            : 'Not started yet'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-600 dark:text-zinc-400">Start date</p>
-                      <p className="font-medium">
-                        {activeCycle
-                          ? activeCycle.start_date
-                          : selectedCluster.status === 'completed' && lastCycle
-                            ? (lastCycle.end_date ?? '—')
-                            : '—'}
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="mt-6">
                   <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                     Payment status (active cycle)
                   </h2>
-                  {!activeCycle ? (
+                  {cyclesError ? (
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                      Could not load payment status: {cyclesError.message}
+                    </p>
+                  ) : !activeCycle ? (
                     <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                       No active cycle — nothing to collect right now.
                     </p>
@@ -270,7 +277,11 @@ export default async function DashboardPage({
                   <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                     Upcoming payout
                   </h2>
-                  {!activeCycle ? (
+                  {cyclesError ? (
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                      Could not load the upcoming payout: {cyclesError.message}
+                    </p>
+                  ) : !activeCycle ? (
                     <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                       No active cycle — no upcoming payout.
                     </p>
