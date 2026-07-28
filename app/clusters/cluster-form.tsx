@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import type { ClusterFormState } from './actions'
 
 const initialState: ClusterFormState = { error: null }
@@ -14,12 +14,14 @@ export function ClusterForm({
   defaultValues?: {
     name: string
     contribution_amount: number
-    fee_amount: number
+    fee_type: string
+    fee_value: number | null
     frequency: string
   }
   submitLabel: string
 }) {
   const [state, formAction, pending] = useActionState(action, initialState)
+  const [feeType, setFeeType] = useState(defaultValues?.fee_type ?? 'fixed')
 
   return (
     <form action={formAction} className="mt-6 space-y-4">
@@ -53,20 +55,41 @@ export function ClusterForm({
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="fee_amount" className="text-sm font-medium">
-          Fee amount
+        <label htmlFor="fee_type" className="text-sm font-medium">
+          Coordinator fee type
         </label>
-        <input
-          id="fee_amount"
-          name="fee_amount"
-          type="number"
-          step="0.01"
-          min="0.01"
+        <select
+          id="fee_type"
+          name="fee_type"
           required
-          defaultValue={defaultValues?.fee_amount}
+          value={feeType}
+          onChange={(e) => setFeeType(e.target.value)}
           className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
-        />
+        >
+          <option value="fixed">Fixed amount</option>
+          <option value="percentage">Percentage</option>
+          <option value="none">No fee</option>
+        </select>
       </div>
+
+      {feeType !== 'none' && (
+        <div className="space-y-1">
+          <label htmlFor="fee_value" className="text-sm font-medium">
+            {feeType === 'percentage' ? 'Fee percentage' : 'Fee amount'}
+          </label>
+          <input
+            id="fee_value"
+            name="fee_value"
+            type="number"
+            step="0.01"
+            min="0.01"
+            max={feeType === 'percentage' ? 100 : undefined}
+            required
+            defaultValue={defaultValues?.fee_value ?? undefined}
+            className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          />
+        </div>
+      )}
 
       <div className="space-y-1">
         <label htmlFor="frequency" className="text-sm font-medium">

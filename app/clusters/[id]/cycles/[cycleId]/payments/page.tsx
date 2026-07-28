@@ -17,7 +17,7 @@ export default async function CyclePaymentsPage({
 
   const { data: cluster } = await supabase
     .from('clusters')
-    .select('id, name, contribution_amount, fee_amount')
+    .select('id, name, contribution_amount, fee_type, fee_value')
     .eq('id', id)
     .single()
 
@@ -58,7 +58,14 @@ export default async function CyclePaymentsPage({
     .filter((payment) => payment.status === 'paid')
     .reduce((sum, payment) => sum + Number(payment.amount), 0)
   const outstandingCount = (payments ?? []).filter((payment) => payment.status === 'pending').length
-  const netPayout = pool - Number(cluster.fee_amount)
+
+  const { data: feeAmountData, error: feeError } = await supabase.rpc('calculate_coordinator_fee', {
+    p_fee_type: cluster.fee_type,
+    p_fee_value: cluster.fee_value,
+    p_total_pot: pool,
+  })
+  const feeAmount = feeError ? null : Number(feeAmountData ?? 0)
+  const netPayout = feeAmount === null ? null : pool - feeAmount
 
   return (
     <>
@@ -72,7 +79,7 @@ export default async function CyclePaymentsPage({
           {cluster.name} — Cycle {cycle.cycle_number} payments
         </h1>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-5">
           <div>
             <p className="text-zinc-600 dark:text-zinc-400">Pool</p>
             <p className="font-medium">{pool.toFixed(2)}</p>
@@ -86,10 +93,20 @@ export default async function CyclePaymentsPage({
             <p className="font-medium">{outstandingCount} member{outstandingCount === 1 ? '' : 's'}</p>
           </div>
           <div>
+            <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
+            <p className="font-medium">{feeAmount === null ? 'Unavailable' : feeAmount.toFixed(2)}</p>
+          </div>
+          <div>
             <p className="text-zinc-600 dark:text-zinc-400">Net payout after fee</p>
-            <p className="font-medium">{netPayout.toFixed(2)}</p>
+            <p className="font-medium">{netPayout === null ? 'Unavailable' : netPayout.toFixed(2)}</p>
           </div>
         </div>
+
+        {feeError && (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            Could not calculate the coordinator fee: {feeError.message}
+          </p>
+        )}
 
         {members && members.length > 0 ? (
           <table className="mt-6 w-full text-left text-sm">

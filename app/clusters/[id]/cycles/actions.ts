@@ -42,7 +42,7 @@ export async function advanceCycle(
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
-  const { error } = await supabase.rpc('advance_cycle', {
+  const { data, error } = await supabase.rpc('advance_cycle', {
     p_cluster_id: clusterId,
     p_current_cycle_id: currentCycleId,
     p_next_start_date: parseOptionalDate(formData),
@@ -53,5 +53,11 @@ export async function advanceCycle(
   }
 
   revalidatePath(`/clusters/${clusterId}/cycles`)
-  redirect(`/clusters/${clusterId}/cycles`)
+
+  // advance_cycle now returns a warning (e.g. "payout not recorded") on
+  // the very cycle that's about to stop being the active one, so the
+  // form showing it is about to unmount — a query param survives the
+  // redirect, in-memory action state wouldn't.
+  const query = data ? `?warning=${encodeURIComponent(data)}` : ''
+  redirect(`/clusters/${clusterId}/cycles${query}`)
 }
