@@ -188,4 +188,36 @@ Worth keeping CodeRabbit as a standing second pass on future RLS/auth changes.
 
 **Key process note:** live click-through testing caught both real bugs (the backfill gap and the timestamp rendering) that automated review and local-database testing didn't — a useful complement to Entry 6's finding that automated review catches what manual testing misses. Neither approach substitutes for the other.
 
-**Case study (Entry 8, PR #14):** a "column does not exist" error on the clusters list was initially chased as a PostgREST schema-cache issue for several remediation attempts before the ground truth — the Entry 8 migration had simply never been applied to the live database — was confirmed directly. See [docs/case-studies/saamu-column-does-not-exist-bug-case-study.md](./docs/case-studies/saamu-column-does-not-exist-bug-case-study.md).
+---
+
+## Entry 8: Configurable coordinator payout fee system
+
+**Status:** Ready to merge (PR #14)
+
+**What shipped:**
+- `clusters.fee_type` (`fixed` / `percentage` / `none`) + `fee_value` replace the flat, always-positive `fee_amount` from Entry 3 — backfilled so every existing cluster keeps its current flat fee unchanged
+- `calculate_coordinator_fee()` — single source of truth for the fee formula (percentage rounds to the nearest whole naira), used both by the payout-recording logic and the UI's live "projected" figures, so they can never disagree
+- New `payouts` (one row per completed cycle, snapshotting `fee_type`/`fee_value`/`fee_amount` so a later fee change never rewrites history) and `payout_transactions` (`member_payout` + `coordinator_fee`, two rows per payout) tables — insert+select only for coordinators, no update/delete, enforced at both the RLS and table-grant layers, since this is a financial audit trail
+- `advance_cycle` now records a payout automatically when the completing cycle's slot has exactly one collector. Zero or multiple collectors (a shared slot) warns and skips payout recording rather than blocking the cycle from advancing — a documented limitation, not a hard stop. Also now rejects (fully rolled back) if a fixed fee exceeds the total pot, rather than recording a payout with a negative net payout
+- Cluster form: fee type select (Fixed Amount / Percentage / No Fee) with a conditional fee-value input; clusters list shows fee-aware text and a new "Payouts" link
+- Payments page: fee now computed via the shared RPC instead of raw subtraction, with a new "Coordinator fee" stat tile
+- New `/clusters/[id]/cycles/[cycleId]/payments` page: the new payout warning (e.g. "payout not recorded — shared slot") surfaces via a redirect query param, since the form that produced it belongs to a cycle about to stop being active
+- New `/clusters/[id]/payouts` page: Upcoming Payout (live projection for the active cycle), Total Coordinator Earnings / Total Fees Collected (one aggregate under both labels, per product decision), and full Payout History
+
+**Migration:** `20260726000000_coordinator_payout_fee.sql`
+
+**Verification process:**
+1. Full migration sequence re-run locally from scratch (local Postgres with a minimal `auth` schema stub, since no Supabase CLI/credentials are available in this environment) — no conflicts
+2. Fixed-fee case matches the spec's own worked example exactly (11 × ₦50,000 pot, ₦5,000 fee, ₦545,000 net); percentage and no-fee cases confirmed correct, including that Postgres's `round()` rounds half away from zero
+3. Zero-collector and shared-slot (2-collector) cases both warn and skip payout recording without blocking the cycle from advancing; RLS confirmed at the direct-SQL level (coordinator B cannot see coordinator A's payouts; no `UPDATE`/`DELETE` on a coordinator's own payout; cross-cluster `payout_transactions` insert rejected)
+4. CodeRabbit review on the PR, alongside manual triage of each finding
+5. `npm run build`, `npm run lint`, `tsc --noEmit` all clean throughout
+6. Live click-through verification pending at PR-open time due to a live database issue — see bugs below
+
+**Bugs found and fixed:**
+
+1. **Migration never applied to the live database** (Major, functional) — the Vercel Preview for this PR failed to load the clusters list with `column clusters.fee_type does not exist`, initially misdiagnosed across four remediation attempts (schema cache reload, project restart, env var audit, cache-disabled redeploy) before a direct `information_schema.columns` query confirmed the migration had simply never been run live. Fixed by applying the missing `ALTER TABLE` as an interim patch. Along the way, also found and fixed a related code bug: the clusters list query never checked `.error`, so this same failure silently rendered as "No clusters yet" instead of surfacing the real error — now fixed to always surface query errors instead of coercing them into an empty state.
+
+2. **Interim fix left the rest of the migration unapplied** (Major, functional) — after the fix above, the coordinator payouts page failed with `Could not find the function public.calculate_coordinator_fee` / `Could not find the table 'public.payouts'`, because the interim patch only added the two columns and never ran the rest of the migration (backfill, constraints, the `payouts`/`payout_transactions` tables, the fee function, and the updated `advance_cycle`). Fixed by running the remainder of the migration file directly against the database. This is exactly the risk CodeRabbit had flagged during review of the interim patch — that it wasn't the canonical fix.
+
+**Case study:** both bugs above are documented in detail, including the full investigation timeline for each. See [docs/case-studies/saamu-column-does-not-exist-bug-case-study.md](./docs/case-studies/saamu-column-does-not-exist-bug-case-study.md).
