@@ -10,6 +10,9 @@ export function SiteNav() {
         <Link href="/clusters" className="text-zinc-600 hover:underline dark:text-zinc-400">
           Clusters
         </Link>
+        <Link href="/dashboard" className="text-zinc-600 hover:underline dark:text-zinc-400">
+          Dashboard
+        </Link>
       </div>
       <form action="/auth/signout" method="post">
         <button
