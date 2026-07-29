@@ -15,7 +15,7 @@ The "Add position" form's Position field is a free-entry number input with no va
 
 ## Why it mattered
 
-Rotation order (`advance_cycle`) works by finding the next slot where `position > current_position`, so a stray high number like `12` wouldn't immediately break the rotation — but it would silently make the rotation's actual sequence not match what a coordinator believes they set up, and could cause confusing behavior later (e.g., if they later add a real "position 3 through 11," the mistyped slot would unexpectedly sit ahead of them in the queue).
+Rotation order (`advance_cycle`) works by finding the next slot where `position > current_position`, ordered ascending, so a stray high number like `12` wouldn't immediately break the rotation — but it would silently make the rotation's actual sequence not match what a coordinator believes they set up, and could cause confusing behavior later (e.g., if they later add a real "position 3 through 11," those would each be reached before the mistyped slot, pushing what was meant to be the very next collector to the end of the queue instead).
 
 ## Fix applied (this instance)
 
