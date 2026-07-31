@@ -68,7 +68,7 @@ export default async function ClustersPage() {
   return (
     <>
       <SiteNav />
-      <div className="mx-auto w-full max-w-3xl px-4 py-8">
+      <div className="mx-auto w-full max-w-5xl px-4 py-8">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Clusters</h1>
           <Link
@@ -84,16 +84,17 @@ export default async function ClustersPage() {
             Could not load clusters: {clustersError.message}
           </p>
         ) : clusters && clusters.length > 0 ? (
-          <table className="mt-6 w-full text-left text-sm">
+          <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[880px] table-auto text-left text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="py-2 font-medium">Name</th>
-                <th className="py-2 font-medium">Owner</th>
-                <th className="py-2 font-medium">Contribution</th>
-                <th className="py-2 font-medium">Fee</th>
-                <th className="py-2 font-medium">Frequency</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Rotation</th>
+                <th className="py-2 pr-4 font-medium">Name</th>
+                <th className="py-2 pr-4 font-medium">Owner</th>
+                <th className="py-2 pr-4 font-medium">Contribution</th>
+                <th className="py-2 pr-4 font-medium">Fee</th>
+                <th className="py-2 pr-4 font-medium">Frequency</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 pr-4 font-medium">Rotation</th>
                 <th className="py-2" />
               </tr>
             </thead>
@@ -104,23 +105,27 @@ export default async function ClustersPage() {
                 const completedCount = completedCountByClusterId.get(cluster.id) ?? 0
                 return (
                   <tr key={cluster.id} className="border-b border-border">
-                    <td className="py-2">{cluster.name}</td>
-                    <td className="py-2">{emailByOwnerId.get(cluster.owner_id) ?? '—'}</td>
-                    <td className="py-2">{Number(cluster.contribution_amount).toFixed(2)}</td>
-                    <td className="py-2">
+                    <td className="py-3 pr-4 align-middle">{cluster.name}</td>
+                    <td className="py-3 pr-4 align-middle">
+                      {emailByOwnerId.get(cluster.owner_id) ?? '—'}
+                    </td>
+                    <td className="py-3 pr-4 align-middle">
+                      {Number(cluster.contribution_amount).toFixed(2)}
+                    </td>
+                    <td className="py-3 pr-4 align-middle">
                       {cluster.fee_type === 'none'
                         ? 'No fee'
                         : cluster.fee_type === 'percentage'
                           ? `${Number(cluster.fee_value)}%`
                           : Number(cluster.fee_value).toFixed(2)}
                     </td>
-                    <td className="py-2 capitalize">{cluster.frequency}</td>
-                    <td className="py-2">
+                    <td className="py-3 pr-4 align-middle capitalize">{cluster.frequency}</td>
+                    <td className="py-3 pr-4 align-middle">
                       <StatusBadge tone={clusterStatusTone[cluster.status] ?? 'neutral'}>
                         {cluster.status}
                       </StatusBadge>
                     </td>
-                    <td className="py-2">
+                    <td className="py-3 pr-4 align-middle">
                       {totalPositions > 0 ? (
                         <RotationRing
                           totalPositions={totalPositions}
@@ -137,28 +142,46 @@ export default async function ClustersPage() {
                         '—'
                       )}
                     </td>
-                    <td className="py-2 text-right">
-                      <Link href={`/clusters/${cluster.id}/members`} className="underline">
-                        Members
-                      </Link>{' '}
-                      <Link href={`/clusters/${cluster.id}/slots`} className="ml-2 underline">
-                        Rotation
-                      </Link>{' '}
-                      <Link href={`/clusters/${cluster.id}/cycles`} className="ml-2 underline">
-                        Cycles
-                      </Link>{' '}
-                      <Link href={`/clusters/${cluster.id}/payouts`} className="ml-2 underline">
-                        Payouts
-                      </Link>{' '}
-                      <Link href={`/clusters/${cluster.id}/edit`} className="ml-2 underline">
-                        Edit
-                      </Link>
+                    <td className="py-3 align-middle">
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        <Link
+                          href={`/clusters/${cluster.id}/members`}
+                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
+                        >
+                          Members
+                        </Link>
+                        <Link
+                          href={`/clusters/${cluster.id}/slots`}
+                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
+                        >
+                          Rotation
+                        </Link>
+                        <Link
+                          href={`/clusters/${cluster.id}/cycles`}
+                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
+                        >
+                          Cycles
+                        </Link>
+                        <Link
+                          href={`/clusters/${cluster.id}/payouts`}
+                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
+                        >
+                          Payouts
+                        </Link>
+                        <Link
+                          href={`/clusters/${cluster.id}/edit`}
+                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
+                        >
+                          Edit
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="mt-6 text-sm text-muted">
             No clusters yet. Create one to get started.
