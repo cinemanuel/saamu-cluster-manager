@@ -3,9 +3,16 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
+import { StatusBadge, type StatusTone } from '../../../components/status-badge'
 import { StartCycleForm } from './start-cycle-form'
 import { AdvanceCycleForm } from './advance-cycle-form'
 import { startFirstCycle, advanceCycle } from './actions'
+
+const cycleStatusTone: Record<string, StatusTone> = {
+  pending: 'neutral',
+  active: 'active',
+  completed: 'positive',
+}
 
 export default async function CyclesPage({
   params,
@@ -93,15 +100,15 @@ export default async function CyclesPage({
         </div>
 
         {warning && (
-          <p className="mt-4 rounded bg-black/10 px-4 py-3 text-sm dark:bg-white/10">{warning}</p>
+          <p className="mt-4 rounded bg-border px-4 py-3 text-sm text-ink">{warning}</p>
         )}
 
         {rotationComplete ? (
-          <p className="mt-6 rounded bg-black/10 px-4 py-3 text-sm font-medium dark:bg-white/10">
+          <p className="mt-6 rounded bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
             Rotation complete — all positions have collected.
           </p>
         ) : activeCycle ? (
-          <div className="mt-6 rounded border border-black/15 p-4 dark:border-white/20">
+          <div className="mt-6 rounded border border-border p-4">
             {(() => {
               const slot = slotById.get(activeCycle.slot_id)
               const collectors = collectorNamesBySlotId.get(activeCycle.slot_id) ?? []
@@ -112,7 +119,7 @@ export default async function CyclesPage({
                     {slot?.position ?? '—'}
                     {slot?.label ? ` (${slot.label})` : ''}
                   </p>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-1 text-sm text-muted">
                     Collector{collectors.length > 1 ? 's' : ''}:{' '}
                     {collectors.length > 0 ? collectors.join(', ') : 'Unassigned'}
                   </p>
@@ -120,7 +127,7 @@ export default async function CyclesPage({
               )
             })()}
             {(outstandingByCycleId.get(activeCycle.id) ?? 0) > 0 && (
-              <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {`${outstandingByCycleId.get(activeCycle.id)} member${
                   outstandingByCycleId.get(activeCycle.id) === 1 ? '' : 's'
                 } still owe for this cycle.`}
@@ -135,7 +142,7 @@ export default async function CyclesPage({
         {cycles && cycles.length > 0 ? (
           <table className="mt-8 w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-black/10 dark:border-white/15">
+              <tr className="border-b border-border">
                 <th className="py-2 font-medium">Cycle</th>
                 <th className="py-2 font-medium">Position</th>
                 <th className="py-2 font-medium">Collector(s)</th>
@@ -150,14 +157,18 @@ export default async function CyclesPage({
                 const slot = slotById.get(cycle.slot_id)
                 const collectors = collectorNamesBySlotId.get(cycle.slot_id) ?? []
                 return (
-                  <tr key={cycle.id} className="border-b border-black/5 dark:border-white/10">
+                  <tr key={cycle.id} className="border-b border-border">
                     <td className="py-2">{cycle.cycle_number}</td>
                     <td className="py-2">
                       {slot?.position ?? '—'}
                       {slot?.label ? ` (${slot.label})` : ''}
                     </td>
                     <td className="py-2">{collectors.length > 0 ? collectors.join(', ') : '—'}</td>
-                    <td className="py-2 capitalize">{cycle.status}</td>
+                    <td className="py-2">
+                      <StatusBadge tone={cycleStatusTone[cycle.status] ?? 'neutral'}>
+                        {cycle.status}
+                      </StatusBadge>
+                    </td>
                     <td className="py-2">{cycle.start_date}</td>
                     <td className="py-2">{cycle.end_date ?? '—'}</td>
                     <td className="py-2">
@@ -171,7 +182,7 @@ export default async function CyclesPage({
             </tbody>
           </table>
         ) : (
-          <p className="mt-8 text-sm text-zinc-600 dark:text-zinc-400">No cycles yet.</p>
+          <p className="mt-8 text-sm text-muted">No cycles yet.</p>
         )}
       </div>
     </>

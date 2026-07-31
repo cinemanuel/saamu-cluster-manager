@@ -77,7 +77,7 @@ export default async function SlotsPage({
         {slots && slots.length > 0 ? (
           <table className="mt-6 w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-black/10 dark:border-white/15">
+              <tr className="border-b border-border">
                 <th className="py-2 font-medium">Position</th>
                 <th className="py-2 font-medium">Label</th>
                 <th className="py-2 font-medium">Assigned member(s)</th>
@@ -87,16 +87,16 @@ export default async function SlotsPage({
               {slots.map((slot) => {
                 const assignment = assignmentsBySlotId.get(slot.id) ?? []
                 return (
-                  <tr key={slot.id} className="border-b border-black/5 dark:border-white/10">
+                  <tr key={slot.id} className="border-b border-border">
                     <td className="py-2 align-top">
                       {slot.position}
                       {slot.position <= 2 && (
-                        <span className="ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs dark:bg-white/10">
+                        <span className="ml-2 rounded bg-border px-1.5 py-0.5 text-xs text-muted">
                           Requires Tier 3
                         </span>
                       )}
                       {slot.is_shared && (
-                        <span className="ml-2 rounded bg-black/10 px-1.5 py-0.5 text-xs dark:bg-white/10">
+                        <span className="ml-2 rounded bg-border px-1.5 py-0.5 text-xs text-muted">
                           Shared
                         </span>
                       )}
@@ -116,7 +116,7 @@ export default async function SlotsPage({
             </tbody>
           </table>
         ) : (
-          <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-6 text-sm text-muted">
             No rotation positions yet. Add one above.
           </p>
         )}

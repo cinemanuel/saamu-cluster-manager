@@ -65,8 +65,8 @@ export function MemberForm({
   return (
     <form action={formAction} className="mt-6 space-y-4">
       {kycTier !== undefined && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          KYC tier: <span className="font-medium text-foreground">Tier {kycTier}</span>{' '}
+        <p className="text-sm text-muted">
+          KYC tier: <span className="font-medium text-ink">Tier {kycTier}</span>{' '}
           (calculated automatically from the fields below)
         </p>
       )}
@@ -80,7 +80,7 @@ export function MemberForm({
           name="full_name"
           required
           defaultValue={defaultValues?.full_name}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -115,7 +115,7 @@ export function MemberForm({
           type="tel"
           required
           defaultValue={defaultValues?.phone ?? ''}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -128,7 +128,7 @@ export function MemberForm({
           name="email"
           type="email"
           defaultValue={defaultValues?.email ?? ''}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -140,7 +140,7 @@ export function MemberForm({
           id="residential_address"
           name="residential_address"
           defaultValue={defaultValues?.residential_address ?? ''}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -152,7 +152,7 @@ export function MemberForm({
           id="business_name"
           name="business_name"
           defaultValue={defaultValues?.business_name ?? ''}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -164,16 +164,16 @@ export function MemberForm({
           id="business_address"
           name="business_address"
           defaultValue={defaultValues?.business_address ?? ''}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+        className="w-full rounded bg-primary px-4 py-2 text-white disabled:opacity-50"
       >
         {pending ? 'Saving…' : submitLabel}
       </button>

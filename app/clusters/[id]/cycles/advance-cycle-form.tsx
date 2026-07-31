@@ -22,20 +22,20 @@ export function AdvanceCycleForm({
           id="start_date"
           name="start_date"
           type="date"
-          className="rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-border px-3 py-2"
         />
       </div>
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
+        className="rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
       >
         {pending ? 'Advancing…' : 'Complete cycle & advance'}
       </button>
 
       {state.error && (
-        <p className="w-full text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p className="w-full text-sm text-danger">{state.error}</p>
       )}
     </form>
   )

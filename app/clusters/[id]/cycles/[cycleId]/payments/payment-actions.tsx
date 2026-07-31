@@ -24,7 +24,7 @@ export function PendingPaymentActions({
           name="payment_method"
           defaultValue=""
           required
-          className="rounded border border-black/15 px-2 py-1 text-sm dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-border px-2 py-1 text-sm"
         >
           <option value="" disabled>
             Method
@@ -37,18 +37,18 @@ export function PendingPaymentActions({
           type="text"
           name="notes"
           placeholder="Notes (optional)"
-          className="rounded border border-black/15 px-2 py-1 text-sm dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-border px-2 py-1 text-sm"
         />
         <button
           type="submit"
           disabled={markPaidPending}
-          className="rounded bg-foreground px-2 py-1 text-sm text-background disabled:opacity-50"
+          className="rounded bg-primary px-2 py-1 text-sm text-white disabled:opacity-50"
         >
           {markPaidPending ? 'Saving…' : 'Mark paid'}
         </button>
       </form>
       {markPaidState.error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{markPaidState.error}</p>
+        <p className="text-sm text-danger">{markPaidState.error}</p>
       )}
 
       <form action={waiveFormAction} className="flex flex-wrap items-center gap-2">
@@ -56,17 +56,17 @@ export function PendingPaymentActions({
           type="text"
           name="notes"
           placeholder="Reason (optional)"
-          className="rounded border border-black/15 px-2 py-1 text-sm dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-border px-2 py-1 text-sm"
         />
         <button
           type="submit"
           disabled={waivePending}
-          className="rounded border border-black/15 px-2 py-1 text-sm disabled:opacity-50 dark:border-white/20"
+          className="rounded border border-border px-2 py-1 text-sm disabled:opacity-50"
         >
           {waivePending ? 'Saving…' : 'Waive'}
         </button>
       </form>
-      {waiveState.error && <p className="text-sm text-red-600 dark:text-red-400">{waiveState.error}</p>}
+      {waiveState.error && <p className="text-sm text-danger">{waiveState.error}</p>}
     </div>
   )
 }
@@ -80,12 +80,12 @@ export function SettledPaymentActions({ revertAction }: { revertAction: PaymentA
         <button
           type="submit"
           disabled={pending}
-          className="rounded border border-black/15 px-2 py-1 text-sm disabled:opacity-50 dark:border-white/20"
+          className="rounded border border-border px-2 py-1 text-sm disabled:opacity-50"
         >
           {pending ? 'Saving…' : 'Revert to pending'}
         </button>
       </form>
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
     </div>
   )
 }

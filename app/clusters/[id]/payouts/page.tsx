@@ -114,33 +114,33 @@ export default async function ClusterPayoutsPage({
 
         {activeCycle && (
           <div className="mt-6">
-            <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Upcoming payout</h2>
+            <h2 className="text-sm font-medium text-muted">Upcoming payout</h2>
             {upcomingError ? (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-2 text-sm text-danger">
                 Could not load the upcoming payout: {upcomingError}
               </p>
             ) : upcoming ? (
               <>
-                <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-4">
+                <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm sm:grid-cols-4">
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Total pot</p>
+                    <p className="text-muted">Total pot</p>
                     <p className="font-medium">{upcoming.totalPot.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
+                    <p className="text-muted">Coordinator fee</p>
                     <p className="font-medium">{upcoming.feeAmount.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Net payout</p>
+                    <p className="text-muted">Net payout</p>
                     <p className="font-medium">{upcoming.netPayout.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Contribution frequency</p>
+                    <p className="text-muted">Contribution frequency</p>
                     <p className="font-medium capitalize">{cluster.frequency}</p>
                   </div>
                 </div>
                 {upcoming.collectorCount !== 1 && (
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-2 text-sm text-muted">
                     This position currently has {upcoming.collectorCount} collector
                     {upcoming.collectorCount === 1 ? '' : 's'} — a payout won&apos;t be automatically
                     recorded when this cycle completes (shared-slot payouts aren&apos;t supported yet).
@@ -152,21 +152,21 @@ export default async function ClusterPayoutsPage({
         )}
 
         <div className="mt-6">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Lifetime totals</h2>
+          <h2 className="text-sm font-medium text-muted">Lifetime totals</h2>
           {payoutsError && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            <p className="mt-2 text-sm text-danger">
               Could not load lifetime totals: {payoutsError.message}
             </p>
           )}
-          <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20">
+          <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm">
             <div>
-              <p className="text-zinc-600 dark:text-zinc-400">Total coordinator earnings</p>
+              <p className="text-muted">Total coordinator earnings</p>
               <p className="font-medium">
                 {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
               </p>
             </div>
             <div>
-              <p className="text-zinc-600 dark:text-zinc-400">Total fees collected</p>
+              <p className="text-muted">Total fees collected</p>
               <p className="font-medium">
                 {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
               </p>
@@ -175,20 +175,20 @@ export default async function ClusterPayoutsPage({
         </div>
 
         <div className="mt-6">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Payout history</h2>
+          <h2 className="text-sm font-medium text-muted">Payout history</h2>
           {transactionsError && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            <p className="mt-2 text-sm text-danger">
               Recipient names could not be loaded: {transactionsError.message}
             </p>
           )}
           {payoutsError ? (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            <p className="mt-2 text-sm text-danger">
               Could not load payout history: {payoutsError.message}
             </p>
           ) : payouts && payouts.length > 0 ? (
             <table className="mt-2 w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-black/10 dark:border-white/15">
+                <tr className="border-b border-border">
                   <th className="py-2 font-medium">Cycle</th>
                   <th className="py-2 font-medium">Payout date</th>
                   <th className="py-2 font-medium">Total pot</th>
@@ -199,7 +199,7 @@ export default async function ClusterPayoutsPage({
               </thead>
               <tbody>
                 {payouts.map((payout) => (
-                  <tr key={payout.id} className="border-b border-black/5 dark:border-white/10">
+                  <tr key={payout.id} className="border-b border-border">
                     <td className="py-2">{cycleById.get(payout.cycle_id)?.cycle_number ?? '—'}</td>
                     <td className="py-2">{payout.payout_date}</td>
                     <td className="py-2">{Number(payout.total_pot).toFixed(2)}</td>
@@ -211,7 +211,7 @@ export default async function ClusterPayoutsPage({
               </tbody>
             </table>
           ) : (
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">No payouts recorded yet.</p>
+            <p className="mt-2 text-sm text-muted">No payouts recorded yet.</p>
           )}
         </div>
       </div>

@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../../../site-nav'
+import { StatusBadge } from '../../../../../components/status-badge'
 import { PendingPaymentActions, SettledPaymentActions } from './payment-actions'
 import { markPaid, waivePayment, revertToPending } from './actions'
 
@@ -79,31 +80,31 @@ export default async function CyclePaymentsPage({
           {cluster.name} — Cycle {cycle.cycle_number} payments
         </h1>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm sm:grid-cols-5">
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Pool</p>
+            <p className="text-muted">Pool</p>
             <p className="font-medium">{pool.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Collected</p>
+            <p className="text-muted">Collected</p>
             <p className="font-medium">{collected.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Outstanding</p>
+            <p className="text-muted">Outstanding</p>
             <p className="font-medium">{outstandingCount} member{outstandingCount === 1 ? '' : 's'}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
+            <p className="text-muted">Coordinator fee</p>
             <p className="font-medium">{feeAmount === null ? 'Unavailable' : feeAmount.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Net payout after fee</p>
+            <p className="text-muted">Net payout after fee</p>
             <p className="font-medium">{netPayout === null ? 'Unavailable' : netPayout.toFixed(2)}</p>
           </div>
         </div>
 
         {feeError && (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+          <p className="mt-2 text-sm text-danger">
             Could not calculate the coordinator fee: {feeError.message}
           </p>
         )}
@@ -111,7 +112,7 @@ export default async function CyclePaymentsPage({
         {members && members.length > 0 ? (
           <table className="mt-6 w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-black/10 dark:border-white/15">
+              <tr className="border-b border-border">
                 <th className="py-2 font-medium">Member</th>
                 <th className="py-2 font-medium">Amount</th>
                 <th className="py-2 font-medium">Due</th>
@@ -125,9 +126,9 @@ export default async function CyclePaymentsPage({
                 const payment = paymentsByMemberId.get(member.id)
                 if (!payment) {
                   return (
-                    <tr key={member.id} className="border-b border-black/5 dark:border-white/10">
+                    <tr key={member.id} className="border-b border-border">
                       <td className="py-2 align-top">{member.full_name}</td>
-                      <td colSpan={5} className="py-2 align-top text-zinc-600 dark:text-zinc-400">
+                      <td colSpan={5} className="py-2 align-top text-muted">
                         No payment record for this cycle.
                       </td>
                     </tr>
@@ -137,15 +138,17 @@ export default async function CyclePaymentsPage({
                 const isLate = payment.status === 'pending' && payment.due_date < today
 
                 return (
-                  <tr key={member.id} className="border-b border-black/5 dark:border-white/10">
+                  <tr key={member.id} className="border-b border-border">
                     <td className="py-2 align-top">{fullNameByMemberId.get(member.id)}</td>
                     <td className="py-2 align-top">{Number(payment.amount).toFixed(2)}</td>
                     <td className="py-2 align-top">{payment.due_date}</td>
                     <td className="py-2 align-top">
                       {isLate ? (
-                        <span className="text-red-600 dark:text-red-400">Late</span>
+                        <StatusBadge tone="danger">Late</StatusBadge>
+                      ) : payment.status === 'paid' ? (
+                        <StatusBadge tone="positive">Paid</StatusBadge>
                       ) : (
-                        <span className="capitalize">{payment.status}</span>
+                        <StatusBadge tone="neutral">{payment.status}</StatusBadge>
                       )}
                     </td>
                     <td className="py-2 align-top">
@@ -171,7 +174,7 @@ export default async function CyclePaymentsPage({
             </tbody>
           </table>
         ) : (
-          <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">No members in this cluster yet.</p>
+          <p className="mt-6 text-sm text-muted">No members in this cluster yet.</p>
         )}
       </div>
     </>

@@ -58,7 +58,7 @@ export default async function MembersPage({
           <h1 className="text-xl font-semibold">{cluster.name} — Members</h1>
           <Link
             href={`/clusters/${id}/members/new`}
-            className="rounded bg-foreground px-4 py-2 text-sm text-background"
+            className="rounded bg-primary px-4 py-2 text-sm text-white"
           >
             New member
           </Link>
@@ -67,7 +67,7 @@ export default async function MembersPage({
         {members && members.length > 0 ? (
           <table className="mt-6 w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-black/10 dark:border-white/15">
+              <tr className="border-b border-border">
                 <th className="py-2 font-medium">Photo</th>
                 <th className="py-2 font-medium">Name</th>
                 <th className="py-2 font-medium">Phone</th>
@@ -80,13 +80,13 @@ export default async function MembersPage({
               {members.map((member) => {
                 const photoUrl = member.photo_path ? photoUrlByPath.get(member.photo_path) : undefined
                 return (
-                  <tr key={member.id} className="border-b border-black/5 dark:border-white/10">
+                  <tr key={member.id} className="border-b border-border">
                     <td className="py-2">
                       {photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={photoUrl} alt="" className="h-8 w-8 rounded object-cover" />
                       ) : (
-                        <span className="block h-8 w-8 rounded bg-black/10 dark:bg-white/10" />
+                        <span className="block h-8 w-8 rounded bg-border" />
                       )}
                     </td>
                     <td className="py-2">{member.full_name}</td>
@@ -104,7 +104,7 @@ export default async function MembersPage({
             </tbody>
           </table>
         ) : (
-          <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-6 text-sm text-muted">
             No members yet. Add one to get started.
           </p>
         )}

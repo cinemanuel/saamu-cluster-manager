@@ -19,7 +19,7 @@ export function AssignMemberForm({
   const [state, formAction, pending] = useActionState(action, initialState)
 
   if (members.length === 0) {
-    return <p className="text-sm text-zinc-600 dark:text-zinc-400">No members in this cluster yet.</p>
+    return <p className="text-sm text-muted">No members in this cluster yet.</p>
   }
 
   return (
@@ -42,7 +42,7 @@ export function AssignMemberForm({
         <select
           name="member_ids"
           defaultValue={currentMemberIds[0] ?? ''}
-          className="rounded border border-black/15 px-2 py-1 text-sm dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-border px-2 py-1 text-sm"
         >
           <option value="" disabled>
             Unassigned
@@ -59,11 +59,11 @@ export function AssignMemberForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded border border-black/15 px-2 py-1 text-sm disabled:opacity-50 dark:border-white/20"
+          className="rounded border border-border px-2 py-1 text-sm disabled:opacity-50"
         >
           {pending ? 'Saving…' : 'Assign'}
         </button>
-        {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
+        {state.error && <span className="text-sm text-danger">{state.error}</span>}
       </div>
     </form>
   )
