@@ -10,6 +10,8 @@
   --color-accent: #C08A2E;
   --color-danger: #C0392B;
   --color-border: #E5E1DA;
+  --color-border-strong: #988E7C;
+  --color-ring-active: #B5822B;
   --color-muted: #767167;
 }
 
@@ -23,6 +25,8 @@
   --color-accent: var(--color-accent);
   --color-danger: var(--color-danger);
   --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-ring-active: var(--color-ring-active);
   --color-muted: var(--color-muted);
   --font-sans: var(--font-inter);
 }

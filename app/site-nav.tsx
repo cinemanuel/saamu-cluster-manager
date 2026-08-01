@@ -22,8 +22,8 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 
 export function SiteNav() {
   return (
-    <nav className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 text-sm shadow-sm">
-      <div className="flex items-center gap-6">
+    <nav className="flex flex-col gap-3 border-b border-border bg-surface px-4 py-3 text-sm shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <Link href="/" className="text-base font-semibold text-ink">
           Saamu Cluster Manager
         </Link>

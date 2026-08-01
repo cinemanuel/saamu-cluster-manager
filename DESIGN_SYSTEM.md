@@ -31,8 +31,10 @@ Defined as CSS custom properties in `app/globals.css`, exposed to Tailwind via `
 | `--color-primary-active` | `#0D2E1F` | `active:bg-primary-active` | Primary button press state — darkened 16% lightness |
 | `--color-accent` | `#C08A2E` | `bg-accent` | Status accent — "active turn / needs attention." **Badge fills only, never as plain text** (see [Contrast](#contrast-verification)) |
 | `--color-danger` | `#C0392B` | `text-danger` / `bg-danger` | Late/overdue payments only. Used sparingly — this is a warning color, not a general error color |
-| `--color-border` | `#E5E1DA` | `border-border` | All borders/dividers |
-| `--color-muted` | `#767167` | `text-muted` | Secondary/helper text, labels |
+| `--color-border` | `#E5E1DA` | `border-border` | Decorative borders/dividers only (table rows, card edges) — fails non-text contrast, deliberately, see below |
+| `--color-border-strong` | `#988E7C` | `border-border-strong` | Load-bearing borders that must meet the 3:1 non-text target — currently only `buttonSecondary`'s outline, since a button's boundary is functional, not decorative |
+| `--color-ring-active` | `#B5822B` | (rotation-ring stroke only) | A darker, stroke-safe amber for the rotation-ring's active segment. `--color-accent` stays badge-fill-only per its own contrast rule; the ring needed its own token rather than reusing a color that's documented as failing outside badge fills |
+| `--color-muted` | `#767167` | `text-muted` | Secondary/helper text, labels; also the rotation-ring's "remaining position" stroke (replacing `--color-border`, which fails non-text contrast) |
 
 `--color-muted` is **not** the `#8A8579` originally proposed — it's been darkened (same hue, ~42°, same ~7% saturation, lower lightness) to actually pass AA contrast for small text. See below.
 
@@ -59,6 +61,10 @@ Computed via the WCAG relative-luminance formula, not eyeballed. AA requires 4.5
 | `#1A1A18` text on `#FFFFFF` surface | 17.43:1 | Pass — slightly better than on bg |
 | `#767167` (muted) on `#FFFFFF` surface | 4.85:1 | Pass |
 | `#E5E1DA` (border) on `#FFFFFF` surface | 1.30:1 | Same non-text caveat as above |
+| `#988E7C` (border-strong) on bg | 3.05:1 | Pass — non-text 3:1, used where a border is load-bearing (see below) |
+| `#988E7C` (border-strong) on `#FFFFFF` surface | 3.23:1 | Pass |
+| `#B5822B` (ring-active) on bg | 3.20:1 | Pass — non-text 3:1 |
+| `#B5822B` (ring-active) on `#FFFFFF` surface | 3.39:1 | Pass |
 | `#164E35` (primary-hover) + white text | 9.65:1 | Pass |
 | `#0D2E1F` (primary-active) + white text | 14.71:1 | Pass |
 
@@ -106,7 +112,7 @@ Three tiers, defined as shared class-string constants in `app/components/button-
 | Tier | Look | Used for |
 |---|---|---|
 | **Primary** | Filled `bg-primary`, white text, `shadow-sm`, `rounded-lg`, `hover:bg-primary-hover`, `active:bg-primary-active` | New cluster/member/position, Save changes, Start/Advance cycle, Mark paid, Sign in — the one clearly-intended action per page |
-| **Secondary** | `border-border` + `bg-surface`, `rounded-lg`, `hover:border-primary hover:text-primary` | Frequent nav-style actions: Members/Rotation/Cycles/Payouts (clusters list and dashboard quick-links), Assign, Waive, Revert to pending, Sign out |
+| **Secondary** | `border-border-strong` + `bg-surface`, `rounded-lg`, `hover:border-primary hover:text-primary` | Frequent nav-style actions: Members/Rotation/Cycles/Payouts (clusters list and dashboard quick-links), Assign, Waive, Revert to pending, Sign out |
 | **Tertiary/quiet** | Plain `text-muted`, `hover:text-ink hover:underline`, no border or fill | Infrequent actions: Edit, "View payments" |
 
 Text-only, no icons — this app has exactly one SVG (the rotation-ring); adding an icon set for tertiary buttons was considered and deliberately deferred rather than assumed.
@@ -150,10 +156,14 @@ type RotationRingProps = {
 
 ### Segment coloring
 
-- Completed positions (`index < completedCount`): filled `#1F6E4A`
-- Active position (`index === activePosition - 1`): filled `#C08A2E`
-- Remaining positions: unfilled, stroked `#E5E1DA`
-- Draft cluster (`activePosition === null`, `completedCount === 0`): every segment unfilled/neutral
+- Completed positions (`index < completedCount`): stroked `#1F6E4A` (primary)
+- Active position (`index === activePosition - 1`): stroked `#B5822B` (`--color-ring-active`, **not** `--color-accent` — the ring's stroke is non-text UI that needs 3:1 contrast on its own, and plain `#C08A2E` only clears that bar as a badge fill with dark text, not as a thin stroke on a light surface)
+- Remaining positions: stroked `#767167` (`--color-muted`, **not** `--color-border`, which fails non-text contrast and would make "remaining" segments functionally invisible)
+- Draft cluster (`activePosition === null`, `completedCount === 0`): every segment gets the "remaining" treatment above
+
+**Single-position rotations** (`totalPositions === 1`) are drawn as two 180° arcs rather than one 0°–360° arc — a full-circle arc has coincident start/end points and doesn't render at all in SVG.
+
+**Stroke stays inside the viewBox:** the ring's radius is `size / 2 - strokeWidth / 2 - 1`, not a fixed `-3px` inset, so the round stroke caps never extend past the edge of the SVG regardless of `size` (a fixed inset clipped the stroke at larger sizes, e.g. the 64px dashboard ring).
 
 ### Legend
 
@@ -163,19 +173,23 @@ Legend text size follows ring size: `text-sm font-medium text-ink` at 48px+ (das
 
 ### Sizes
 
-The ring is this app's signature element and was previously too small to read (24px list, 32px dashboard). Current defaults:
+The ring is this app's signature element and was previously too small to read (24px list, 32px dashboard). Current call-site sizes:
 
 - Clusters list: `size={36}`
 - Dashboard cluster-status tile: `size={64}` — it has a whole dedicated tile, unlike a table row
 
+The component itself defaults to `size={40}` when the prop is omitted — no call site currently relies on this default (both existing usages pass an explicit size), but it's there as a legible fallback for any future usage that doesn't specify one.
+
 ### Usage sites
 
 - Dashboard's cluster-status tile (one ring per selected cluster)
-- Clusters list (one small ring per row) — this requires a new query on that page (slot count + active cycle position per cluster), since the clusters list currently fetches only `clusters` table columns and has no cycle/slot data today
+- Clusters list (one small ring per row) — the page queries `slots` (for slot count) and `cycles` (for active cycle position) per cluster to render this
 
 ## Navigation
 
 `app/site-nav.tsx` is now `bg-surface` + `shadow-sm`, wider link spacing (`gap-6`, 24px), a heavier app-title (`text-base font-semibold`, was the same weight/size as everything else), and a visible active-link indicator (`border-b-2 border-primary` under the current section, `border-b-2 border-transparent` otherwise, so the layout doesn't shift between states).
+
+Below the `sm` breakpoint the nav stacks vertically (`flex-col`, links row wrapping via `flex-wrap`) instead of forcing the title, both links, and the sign-out button onto one line — at narrow widths that would either clip or force horizontal scroll on the one bar that should never need it.
 
 **This is the app's first Client Component** (`'use client'`, `usePathname()`), needed to know which link is active. Everything else in the app is server-rendered. The JS cost is negligible (a nav bar, no data fetching), but it's a real pattern shift worth naming given "Fast" is a stated principle — the alternative (passing the active section as a server-rendered prop from every page) was considered and rejected as more boilerplate for no real benefit here.
 

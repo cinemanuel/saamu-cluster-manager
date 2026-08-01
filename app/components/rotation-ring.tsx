@@ -41,7 +41,10 @@ export function RotationRing({
 
   const cx = size / 2
   const cy = size / 2
-  const r = size / 2 - 3
+  const strokeWidth = size * 0.16
+  // Inset by half the stroke width (plus a 1px margin) so the round stroke
+  // caps stay inside the viewBox instead of clipping at the outer edge.
+  const r = size / 2 - strokeWidth / 2 - 1
   const segmentDeg = 360 / totalPositions
   const gapDeg = totalPositions > 1 ? Math.min(6, segmentDeg * 0.2) : 0
   // The ring alone doesn't communicate "3 of 5" at a glance -- the legend
@@ -49,30 +52,39 @@ export function RotationRing({
   const legend = activePosition !== null ? `${activePosition}/${totalPositions}` : `${completedCount}/${totalPositions}`
   const legendTextClass = size >= 48 ? 'text-sm font-medium text-ink' : 'text-xs font-medium text-muted'
 
+  const colorForSegment = (index: number) => {
+    const isActive = activePosition !== null && index === activePosition - 1
+    const isCompleted = index < completedCount
+    return isActive ? 'var(--color-ring-active)' : isCompleted ? 'var(--color-primary)' : 'var(--color-muted)'
+  }
+
   return (
     <span className="inline-flex items-center gap-2">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={ariaLabel}>
-        {Array.from({ length: totalPositions }).map((_, index) => {
-          const startAngle = index * segmentDeg + gapDeg / 2
-          const endAngle = (index + 1) * segmentDeg - gapDeg / 2
-          const isActive = activePosition !== null && index === activePosition - 1
-          const isCompleted = index < completedCount
-          const color = isActive
-            ? 'var(--color-accent)'
-            : isCompleted
-              ? 'var(--color-primary)'
-              : 'var(--color-border)'
-          return (
-            <path
-              key={index}
-              d={describeArc(cx, cy, r, startAngle, endAngle)}
-              fill="none"
-              stroke={color}
-              strokeWidth={size * 0.16}
-              strokeLinecap="round"
-            />
-          )
-        })}
+        {totalPositions === 1 ? (
+          // A single position has no gap to draw between -- a 0deg-360deg arc
+          // has coincident start/end points and doesn't render. Two 180deg
+          // arcs trace the same full circle without that degenerate case.
+          <>
+            <path d={describeArc(cx, cy, r, 0, 180)} fill="none" stroke={colorForSegment(0)} strokeWidth={strokeWidth} strokeLinecap="round" />
+            <path d={describeArc(cx, cy, r, 180, 360)} fill="none" stroke={colorForSegment(0)} strokeWidth={strokeWidth} strokeLinecap="round" />
+          </>
+        ) : (
+          Array.from({ length: totalPositions }).map((_, index) => {
+            const startAngle = index * segmentDeg + gapDeg / 2
+            const endAngle = (index + 1) * segmentDeg - gapDeg / 2
+            return (
+              <path
+                key={index}
+                d={describeArc(cx, cy, r, startAngle, endAngle)}
+                fill="none"
+                stroke={colorForSegment(index)}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+              />
+            )
+          })
+        )}
       </svg>
       <span className={legendTextClass} aria-hidden="true">
         {legend}

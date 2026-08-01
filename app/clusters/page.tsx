@@ -37,15 +37,16 @@ export default async function ClustersPage() {
   }
   const emailByOwnerId = new Map(owners.map((owner) => [owner.id, owner.email]))
 
-  const { data: slots, error: slotsError } =
+  const [slotsResult, rotationCyclesResult] =
     clusterIds.length > 0
-      ? await supabase.from('slots').select('cluster_id').in('cluster_id', clusterIds)
-      : { data: [], error: null }
+      ? await Promise.all([
+          supabase.from('slots').select('cluster_id').in('cluster_id', clusterIds),
+          supabase.from('cycles').select('cluster_id, cycle_number, status').in('cluster_id', clusterIds),
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }]
 
-  const { data: rotationCycles, error: rotationCyclesError } =
-    clusterIds.length > 0
-      ? await supabase.from('cycles').select('cluster_id, cycle_number, status').in('cluster_id', clusterIds)
-      : { data: [], error: null }
+  const { data: slots, error: slotsError } = slotsResult
+  const { data: rotationCycles, error: rotationCyclesError } = rotationCyclesResult
 
   const rotationUnavailable = Boolean(slotsError || rotationCyclesError)
 
