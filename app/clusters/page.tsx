@@ -102,8 +102,19 @@ export default async function ClustersPage() {
             <tbody>
               {clusters.map((cluster) => {
                 const totalPositions = positionCountByClusterId.get(cluster.id) ?? 0
-                const activePosition = activeCycleNumberByClusterId.get(cluster.id) ?? null
-                const completedCount = completedCountByClusterId.get(cluster.id) ?? 0
+                // cycle_number/completed count come straight from the cycles
+                // table, which the app's own UI only ever writes within
+                // bounds (start_first_cycle/advance_cycle) -- but coordinators
+                // have direct RLS write access to that table with no
+                // cycle_number CHECK constraint, so a value outside what this
+                // cluster's slots actually support is reachable via a direct
+                // write. Clamp before rendering rather than trust the row.
+                const rawActivePosition = activeCycleNumberByClusterId.get(cluster.id) ?? null
+                const activePosition =
+                  rawActivePosition !== null && rawActivePosition >= 1 && rawActivePosition <= totalPositions
+                    ? rawActivePosition
+                    : null
+                const completedCount = Math.min(completedCountByClusterId.get(cluster.id) ?? 0, totalPositions)
                 return (
                   <tr key={cluster.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
                     <td className="py-3 pr-4 align-middle">{cluster.name}</td>

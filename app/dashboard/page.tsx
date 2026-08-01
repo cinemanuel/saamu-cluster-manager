@@ -254,17 +254,32 @@ export default async function DashboardPage({
                         {slotsError ? (
                           <p className="text-sm text-danger">Unavailable</p>
                         ) : totalPositions > 0 ? (
-                          <RotationRing
-                            totalPositions={totalPositions}
-                            activePosition={activeCycle?.cycle_number ?? null}
-                            completedCount={completedCount}
-                            size={64}
-                            ariaLabel={`${selectedCluster.name}: ${
-                              activeCycle
-                                ? `position ${activeCycle.cycle_number} of ${totalPositions} active`
-                                : `${completedCount} of ${totalPositions} positions complete`
-                            }`}
-                          />
+                          (() => {
+                            // Same clamp as the clusters list: coordinators
+                            // have direct RLS write access to cycles with no
+                            // cycle_number CHECK constraint, so a row outside
+                            // what this cluster's slots support is reachable
+                            // via a direct write, not just this app's UI.
+                            const rawActivePosition = activeCycle?.cycle_number ?? null
+                            const boundedActivePosition =
+                              rawActivePosition !== null && rawActivePosition >= 1 && rawActivePosition <= totalPositions
+                                ? rawActivePosition
+                                : null
+                            const boundedCompletedCount = Math.min(completedCount, totalPositions)
+                            return (
+                              <RotationRing
+                                totalPositions={totalPositions}
+                                activePosition={boundedActivePosition}
+                                completedCount={boundedCompletedCount}
+                                size={64}
+                                ariaLabel={`${selectedCluster.name}: ${
+                                  boundedActivePosition
+                                    ? `position ${boundedActivePosition} of ${totalPositions} active`
+                                    : `${boundedCompletedCount} of ${totalPositions} positions complete`
+                                }`}
+                              />
+                            )
+                          })()
                         ) : (
                           <p className="font-medium">—</p>
                         )}

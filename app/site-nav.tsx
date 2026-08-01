@@ -6,37 +6,37 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { buttonSecondary } from './components/button-styles'
 
 // SiteNav is rendered per-page (not from a shared layout), so it remounts on
-// every navigation -- React state here would reset every time. sessionStorage
-// survives the remount but is scoped to this tab, which is the right lifetime
-// for "history within this visit." useSyncExternalStore (rather than
-// effect+setState) is the React-recommended way to read a mutable source like
-// this: the effect below only writes to storage and notifies subscribers, it
-// never calls setState itself.
-const LAST_PATH_KEY = 'saamu-nav-last-path'
-const CAN_FORWARD_KEY = 'saamu-nav-can-forward'
-const CAN_GO_BACK_KEY = 'saamu-nav-can-go-back'
-const PENDING_ACTION_KEY = 'saamu-nav-pending-action'
+// every navigation -- React state here would reset every time.
+//
+// Back/forward availability is derived from an index stamped onto each
+// browser history entry's own `state` object (via history.replaceState), not
+// from a session-wide "have I ever navigated" flag. That first version had a
+// real bug: going /clusters -> /dashboard -> Back (to /clusters) left Back
+// enabled, because the flag only ever asked "have I navigated at all this
+// session," not "am I at the entry the app actually started from." A second
+// Back click from there would have gone past /clusters to whatever was
+// before the app (an auth redirect, an external referrer) -- silently
+// leaving the app. history.state is restored per-entry by the browser
+// itself on back/forward, so comparing the *current* entry's stamped index
+// against the app's root index is correct even across SiteNav's remounts,
+// and correctly re-disables Back once the user is actually back at the
+// entry point again.
+const NEXT_INDEX_KEY = 'saamu-nav-next-index'
+const ROOT_INDEX_KEY = 'saamu-nav-root-index'
 
-function updateNavState(pathname: string) {
-  const lastPath = sessionStorage.getItem(LAST_PATH_KEY)
-  const isFirstPageOfSession = lastPath === null
-  const pendingAction = sessionStorage.getItem(PENDING_ACTION_KEY)
-  sessionStorage.removeItem(PENDING_ACTION_KEY)
+type NavHistoryState = { appNavIndex?: number } & Record<string, unknown>
 
-  let canForward = sessionStorage.getItem(CAN_FORWARD_KEY) === '1'
-  if (!isFirstPageOfSession && pathname !== lastPath) {
-    if (pendingAction === 'back') {
-      canForward = true
-    } else if (pendingAction !== 'forward') {
-      // A regular navigation (not our own back/forward buttons) breaks the
-      // forward chain, the same way clicking a link does in any browser.
-      canForward = false
-    }
+function reconcileHistoryIndex() {
+  const currentState = (window.history.state ?? {}) as NavHistoryState
+  if (typeof currentState.appNavIndex === 'number') {
+    return
   }
-
-  sessionStorage.setItem(LAST_PATH_KEY, pathname)
-  sessionStorage.setItem(CAN_FORWARD_KEY, canForward ? '1' : '0')
-  sessionStorage.setItem(CAN_GO_BACK_KEY, isFirstPageOfSession ? '0' : '1')
+  const nextIndex = Number(sessionStorage.getItem(NEXT_INDEX_KEY) ?? '0')
+  window.history.replaceState({ ...currentState, appNavIndex: nextIndex }, '')
+  sessionStorage.setItem(NEXT_INDEX_KEY, String(nextIndex + 1))
+  if (sessionStorage.getItem(ROOT_INDEX_KEY) === null) {
+    sessionStorage.setItem(ROOT_INDEX_KEY, String(nextIndex))
+  }
 }
 
 let listeners: Array<() => void> = []
@@ -50,11 +50,25 @@ function subscribe(listener: () => void) {
   }
 }
 function getSnapshot() {
-  return `${sessionStorage.getItem(CAN_GO_BACK_KEY)}:${sessionStorage.getItem(CAN_FORWARD_KEY)}`
+  const currentState = (window.history.state ?? {}) as NavHistoryState
+  const currentIndex = currentState.appNavIndex
+  const rootIndex = sessionStorage.getItem(ROOT_INDEX_KEY)
+  const nextIndex = sessionStorage.getItem(NEXT_INDEX_KEY)
+  if (typeof currentIndex !== 'number' || rootIndex === null || nextIndex === null) {
+    return '0:0'
+  }
+  const canGoBack = currentIndex > Number(rootIndex)
+  // The highest index handed out so far is the "front" of history any entry
+  // could reach by going forward. Branching to a new link after going back
+  // doesn't need special handling here -- the browser itself truncates the
+  // old forward entries from real history, so there's nothing to reach even
+  // though this counter never decreases.
+  const canGoForward = currentIndex < Number(nextIndex) - 1
+  return `${canGoBack ? '1' : '0'}:${canGoForward ? '1' : '0'}`
 }
-// sessionStorage doesn't exist during SSR -- disabled-by-default matches the
-// first client paint too, since real state only lands once the effect below
-// runs and notifies.
+// sessionStorage/history.state don't exist during SSR -- disabled-by-default
+// matches the first client paint too, since real state only lands once the
+// effects below run and notify.
 function getServerSnapshot() {
   return '0:0'
 }
@@ -63,33 +77,37 @@ const navChromeButton =
   'inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink disabled:opacity-50 disabled:pointer-events-none'
 
 function HistoryNav() {
-  const pathname = usePathname()
   const router = useRouter()
 
+  // No dependency array: reruns after every render, including a same-instance
+  // re-render that isn't a remount (e.g. the dashboard's ?cluster= switcher,
+  // which changes search params but not pathname). reconcileHistoryIndex()
+  // is a no-op once the current entry is already stamped, so this is cheap.
   useEffect(() => {
-    updateNavState(pathname)
+    reconcileHistoryIndex()
     notifyListeners()
-  }, [pathname])
+  })
+
+  // Belt-and-suspenders for the case where a back/forward navigation somehow
+  // doesn't produce a re-render of this instance at all.
+  useEffect(() => {
+    const handlePopState = () => {
+      reconcileHistoryIndex()
+      notifyListeners()
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
   const [canGoBack, canGoForward] = snapshot.split(':').map((flag) => flag === '1')
 
-  const handleBack = () => {
-    sessionStorage.setItem(PENDING_ACTION_KEY, 'back')
-    router.back()
-  }
-
-  const handleForward = () => {
-    sessionStorage.setItem(PENDING_ACTION_KEY, 'forward')
-    router.forward()
-  }
-
   return (
     <div className="flex items-center gap-1">
-      <button type="button" onClick={handleBack} disabled={!canGoBack} aria-label="Go back" className={navChromeButton}>
+      <button type="button" onClick={() => router.back()} disabled={!canGoBack} aria-label="Go back" className={navChromeButton}>
         &larr;
       </button>
-      <button type="button" onClick={handleForward} disabled={!canGoForward} aria-label="Go forward" className={navChromeButton}>
+      <button type="button" onClick={() => router.forward()} disabled={!canGoForward} aria-label="Go forward" className={navChromeButton}>
         &rarr;
       </button>
     </div>
