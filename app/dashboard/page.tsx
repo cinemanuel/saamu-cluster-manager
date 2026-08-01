@@ -308,20 +308,20 @@ export default async function DashboardPage({
                     <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                       <div>
                         <p className="text-muted">Paid</p>
-                        <p className="font-medium text-primary">{paidCount}</p>
+                        <p className="text-lg font-semibold text-primary">{paidCount}</p>
                       </div>
                       <div>
                         <p className="text-muted">Pending</p>
-                        <p className="font-medium">{pendingCount}</p>
+                        <p className="text-lg font-semibold">{pendingCount}</p>
                       </div>
                       <div>
                         <p className="text-muted">Late</p>
-                        <p className="font-medium text-danger">{lateCount}</p>
+                        <p className="text-lg font-semibold text-danger">{lateCount}</p>
                       </div>
                       {waivedCount > 0 && (
                         <div>
                           <p className="text-muted">Waived</p>
-                          <p className="font-medium">{waivedCount}</p>
+                          <p className="text-lg font-semibold">{waivedCount}</p>
                         </div>
                       )}
                     </div>
@@ -355,15 +355,15 @@ export default async function DashboardPage({
                         </div>
                         <div>
                           <p className="text-muted">Total pot</p>
-                          <p className="font-medium">{totalPot.toFixed(2)}</p>
+                          <p className="text-lg font-semibold">{totalPot.toFixed(2)}</p>
                         </div>
                         <div>
                           <p className="text-muted">Coordinator fee</p>
-                          <p className="font-medium">{(feeAmountData ?? 0).toFixed(2)}</p>
+                          <p className="text-lg font-semibold">{(feeAmountData ?? 0).toFixed(2)}</p>
                         </div>
                         <div>
                           <p className="text-muted">Net payout</p>
-                          <p className="font-medium">{(netPayout ?? 0).toFixed(2)}</p>
+                          <p className="text-lg font-semibold">{(netPayout ?? 0).toFixed(2)}</p>
                         </div>
                       </div>
                       {feeExceedsPot && (
@@ -401,13 +401,13 @@ export default async function DashboardPage({
                     <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm">
                       <div>
                         <p className="text-muted">Total coordinator earnings</p>
-                        <p className="font-medium">
+                        <p className="text-lg font-semibold">
                           {payoutsTotalFees === null ? 'Unavailable' : payoutsTotalFees.toFixed(2)}
                         </p>
                       </div>
                       <div>
                         <p className="text-muted">Total fees collected</p>
-                        <p className="font-medium">
+                        <p className="text-lg font-semibold">
                           {payoutsTotalFees === null ? 'Unavailable' : payoutsTotalFees.toFixed(2)}
                         </p>
                       </div>

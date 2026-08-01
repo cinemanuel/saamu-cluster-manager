@@ -85,7 +85,8 @@ export default async function ClustersPage() {
             Could not load clusters: {clustersError.message}
           </p>
         ) : clusters && clusters.length > 0 ? (
-          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <div className="relative mt-6">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
           <table className="w-full min-w-[880px] table-auto text-left text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -180,6 +181,11 @@ export default async function ClustersPage() {
               })}
             </tbody>
           </table>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+          />
           </div>
         ) : (
           <p className="mt-6 text-sm text-muted">

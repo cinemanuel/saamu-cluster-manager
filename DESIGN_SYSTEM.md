@@ -13,7 +13,7 @@ This is why typography uses **Inter only** — for headings and body/data alike.
 - Page titles: `font-semibold`, larger size (`text-xl`/`text-2xl`)
 - Section headings: `font-medium`, small-caps-adjacent treatment via size (`text-sm`), muted color
 - Body/data: `font-normal`, base size
-- Emphasis within data (e.g. a stat value): `font-medium`, same size as its label
+- Stat values (e.g. a payout figure, a paid/late count): `text-lg font-semibold` — a deliberate step up from its own label, not just heavier weight at the same size (see [Typographic scale](#typographic-scale))
 
 **Meaningful color, not decoration.** Every color in this system maps to something real about the data (a payment is genuinely paid, a position genuinely holds the active turn) — never applied for visual variety alone.
 
@@ -90,6 +90,22 @@ This matters because the first version of the clusters-list action row used `rou
 **Which forms get elevated cards:** only the two standalone-page forms, `cluster-form.tsx` and `member-form.tsx` (they're the entire content of their own page). The small inline forms — add position, assign member, start/advance cycle, mark paid/waive/revert — do **not** get their own card; they're compact, embedded controls that live inside a page section (a table row, a tile) that's already elevated. Nesting a card inside a card there would read as visual clutter, not hierarchy.
 
 **Table rows** get `hover:bg-bg` (the row highlights to the page's own background color, not a new token — a free, correct-looking hover state since the row already sits on a lighter surface than the page) and `last:border-b-0` so the final row doesn't double up its divider against the card's own bottom border.
+
+**Mobile table scroll affordance:** every table card is wrapped in an outer `relative` div around the existing `overflow-x-auto` one, with a `pointer-events-none` gradient div (`bg-gradient-to-l from-surface to-transparent`, `w-8`, `sm:hidden`) positioned over its right edge. Below the `sm` breakpoint, a table that overflows its card was scrollable but looked cut off — no visible scrollbar, no indication there was more to the right, so the last visible column read as truncated/broken rather than "swipe for more." The fade is a fixed decorative affordance (always rendered when the table has rows, not JS-detected against actual scroll position), which keeps every one of these 6 table pages a plain Server Component — adding real scroll-position detection would mean converting each to a Client Component for a purely cosmetic hint. Hidden at `sm` and above, where these tables generally fit without needing to scroll.
+
+## Typographic scale
+
+Formalizing what was already implicit, plus one real gap: every stat figure across the app (Total pot, Coordinator fee, Net payout, paid/pending/late counts, etc.) previously rendered at `font-medium` with no explicit size — literally the same 16px as a table cell or a sentence of body text, so a number meant to be scanned at a glance carried no more visual weight than routine prose.
+
+| Tier | Class | Used for |
+|---|---|---|
+| Page title | `text-xl font-semibold` (20px/600) | The one `<h1>` per page |
+| Section/card title | `text-sm font-medium text-muted` (14px/500) | Dashboard tile headings, payouts page section headings — one tier covers both, since a tile heading and a card heading are the same kind of thing here |
+| Stat value | `text-lg font-semibold` (18px/600) | A figure meant to be scanned, not read — payout/pot amounts, paid/pending/late/waived/outstanding counts. Sits between section titles and page titles: present enough to draw the eye, never competing with the page's own `<h1>` |
+| Body/data | Default (16px/400), `font-medium` for plain emphasis | Table cells, form values, prose — anything meant to be read in context, not scanned as a headline number |
+| Label | `text-muted` at default size | The caption above a stat value or table header (e.g. "Total pot", "Coordinator fee") |
+
+**What's deliberately *not* a stat value:** names (Next collector), dates (Start date), and short categorical text (Current cycle "Cycle 3", Contribution frequency "monthly") stay at plain body weight even when they sit in the same tile as a genuine stat — they're metadata to read, not quantities to scan, and bumping them too would flatten the distinction this tier exists to create.
 
 ## Spacing scale
 

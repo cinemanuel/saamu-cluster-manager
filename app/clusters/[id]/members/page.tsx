@@ -51,7 +51,7 @@ export default async function MembersPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <Link href="/clusters" className="text-sm underline">
+        <Link href="/clusters" className={`${buttonTertiary} text-sm`}>
           ← Back to clusters
         </Link>
 
@@ -63,7 +63,8 @@ export default async function MembersPage({
         </div>
 
         {members && members.length > 0 ? (
-          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <div className="relative mt-6">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -102,6 +103,11 @@ export default async function MembersPage({
               })}
             </tbody>
           </table>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+          />
           </div>
         ) : (
           <p className="mt-6 text-sm text-muted">

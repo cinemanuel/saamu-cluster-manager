@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../../../site-nav'
+import { buttonTertiary } from '../../../../../components/button-styles'
 import { StatusBadge } from '../../../../../components/status-badge'
 import { PendingPaymentActions, SettledPaymentActions } from './payment-actions'
 import { markPaid, waivePayment, revertToPending } from './actions'
@@ -72,7 +73,7 @@ export default async function CyclePaymentsPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <Link href={`/clusters/${id}/cycles`} className="text-sm underline">
+        <Link href={`/clusters/${id}/cycles`} className={`${buttonTertiary} text-sm`}>
           ← Back to {cluster.name} cycles
         </Link>
 
@@ -83,23 +84,23 @@ export default async function CyclePaymentsPage({
         <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-5">
           <div>
             <p className="text-muted">Pool</p>
-            <p className="font-medium">{pool.toFixed(2)}</p>
+            <p className="text-lg font-semibold">{pool.toFixed(2)}</p>
           </div>
           <div>
             <p className="text-muted">Collected</p>
-            <p className="font-medium">{collected.toFixed(2)}</p>
+            <p className="text-lg font-semibold">{collected.toFixed(2)}</p>
           </div>
           <div>
             <p className="text-muted">Outstanding</p>
-            <p className="font-medium">{outstandingCount} member{outstandingCount === 1 ? '' : 's'}</p>
+            <p className="text-lg font-semibold">{outstandingCount} member{outstandingCount === 1 ? '' : 's'}</p>
           </div>
           <div>
             <p className="text-muted">Coordinator fee</p>
-            <p className="font-medium">{feeAmount === null ? 'Unavailable' : feeAmount.toFixed(2)}</p>
+            <p className="text-lg font-semibold">{feeAmount === null ? 'Unavailable' : feeAmount.toFixed(2)}</p>
           </div>
           <div>
             <p className="text-muted">Net payout after fee</p>
-            <p className="font-medium">{netPayout === null ? 'Unavailable' : netPayout.toFixed(2)}</p>
+            <p className="text-lg font-semibold">{netPayout === null ? 'Unavailable' : netPayout.toFixed(2)}</p>
           </div>
         </div>
 
@@ -110,7 +111,8 @@ export default async function CyclePaymentsPage({
         )}
 
         {members && members.length > 0 ? (
-          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <div className="relative mt-6">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -174,6 +176,11 @@ export default async function CyclePaymentsPage({
               })}
             </tbody>
           </table>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+          />
           </div>
         ) : (
           <p className="mt-6 text-sm text-muted">No members in this cluster yet.</p>

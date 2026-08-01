@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
+import { buttonTertiary } from '../../../components/button-styles'
 import { SlotForm } from './slot-form'
 import { AssignMemberForm } from './assign-member-form'
 import { createSlot, assignMembers } from './actions'
@@ -66,7 +67,7 @@ export default async function SlotsPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <Link href={`/clusters/${id}/members`} className="text-sm underline">
+        <Link href={`/clusters/${id}/members`} className={`${buttonTertiary} text-sm`}>
           ← Back to {cluster.name}
         </Link>
 
@@ -75,7 +76,8 @@ export default async function SlotsPage({
         <SlotForm action={createSlot.bind(null, id)} />
 
         {slots && slots.length > 0 ? (
-          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <div className="relative mt-6">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -116,6 +118,11 @@ export default async function SlotsPage({
               })}
             </tbody>
           </table>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+          />
           </div>
         ) : (
           <p className="mt-6 text-sm text-muted">

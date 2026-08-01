@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
+import { buttonTertiary } from '../../../components/button-styles'
 
 export default async function ClusterPayoutsPage({
   params,
@@ -106,7 +107,7 @@ export default async function ClusterPayoutsPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <Link href={`/clusters/${id}/cycles`} className="text-sm underline">
+        <Link href={`/clusters/${id}/cycles`} className={`${buttonTertiary} text-sm`}>
           ← Back to {cluster.name} cycles
         </Link>
 
@@ -124,15 +125,15 @@ export default async function ClusterPayoutsPage({
                 <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                   <div>
                     <p className="text-muted">Total pot</p>
-                    <p className="font-medium">{upcoming.totalPot.toFixed(2)}</p>
+                    <p className="text-lg font-semibold">{upcoming.totalPot.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-muted">Coordinator fee</p>
-                    <p className="font-medium">{upcoming.feeAmount.toFixed(2)}</p>
+                    <p className="text-lg font-semibold">{upcoming.feeAmount.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-muted">Net payout</p>
-                    <p className="font-medium">{upcoming.netPayout.toFixed(2)}</p>
+                    <p className="text-lg font-semibold">{upcoming.netPayout.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-muted">Contribution frequency</p>
@@ -161,13 +162,13 @@ export default async function ClusterPayoutsPage({
           <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm">
             <div>
               <p className="text-muted">Total coordinator earnings</p>
-              <p className="font-medium">
+              <p className="text-lg font-semibold">
                 {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
               </p>
             </div>
             <div>
               <p className="text-muted">Total fees collected</p>
-              <p className="font-medium">
+              <p className="text-lg font-semibold">
                 {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
               </p>
             </div>
@@ -186,7 +187,8 @@ export default async function ClusterPayoutsPage({
               Could not load payout history: {payoutsError.message}
             </p>
           ) : payouts && payouts.length > 0 ? (
-            <div className="mt-2 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+            <div className="relative mt-2">
+            <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border">
@@ -211,6 +213,11 @@ export default async function ClusterPayoutsPage({
                 ))}
               </tbody>
             </table>
+            </div>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+            />
             </div>
           ) : (
             <p className="mt-2 text-sm text-muted">No payouts recorded yet.</p>
