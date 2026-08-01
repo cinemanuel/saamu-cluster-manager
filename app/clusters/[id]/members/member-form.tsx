@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { createClient as createBrowserClient } from '@/utils/supabase/client'
+import { buttonPrimary } from '../../../components/button-styles'
 import type { MemberFormState } from './actions'
 
 const initialState: MemberFormState = { error: null }
@@ -63,7 +64,7 @@ export function MemberForm({
   const [state, formAction, pending] = useActionState(uploadThenSubmit, initialState)
 
   return (
-    <form action={formAction} className="mt-6 space-y-4">
+    <form action={formAction} className="mt-6 space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm">
       {kycTier !== undefined && (
         <p className="text-sm text-muted">
           KYC tier: <span className="font-medium text-ink">Tier {kycTier}</span>{' '}
@@ -170,11 +171,7 @@ export function MemberForm({
 
       {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded bg-primary px-4 py-2 text-white disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className={`${buttonPrimary} w-full px-4 py-2`}>
         {pending ? 'Saving…' : submitLabel}
       </button>
     </form>

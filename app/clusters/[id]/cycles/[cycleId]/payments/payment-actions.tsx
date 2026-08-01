@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { buttonPrimary, buttonSecondary } from '../../../../../components/button-styles'
 import type { PaymentFormState } from './actions'
 
 const initialState: PaymentFormState = { error: null }
@@ -39,11 +40,7 @@ export function PendingPaymentActions({
           placeholder="Notes (optional)"
           className="rounded border border-border px-2 py-1 text-sm"
         />
-        <button
-          type="submit"
-          disabled={markPaidPending}
-          className="rounded bg-primary px-2 py-1 text-sm text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={markPaidPending} className={`${buttonPrimary} px-3 py-1 text-sm`}>
           {markPaidPending ? 'Saving…' : 'Mark paid'}
         </button>
       </form>
@@ -58,11 +55,7 @@ export function PendingPaymentActions({
           placeholder="Reason (optional)"
           className="rounded border border-border px-2 py-1 text-sm"
         />
-        <button
-          type="submit"
-          disabled={waivePending}
-          className="rounded border border-border px-2 py-1 text-sm disabled:opacity-50"
-        >
+        <button type="submit" disabled={waivePending} className={`${buttonSecondary} px-3 py-1 text-sm`}>
           {waivePending ? 'Saving…' : 'Waive'}
         </button>
       </form>
@@ -77,11 +70,7 @@ export function SettledPaymentActions({ revertAction }: { revertAction: PaymentA
   return (
     <div>
       <form action={formAction}>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded border border-border px-2 py-1 text-sm disabled:opacity-50"
-        >
+        <button type="submit" disabled={pending} className={`${buttonSecondary} px-3 py-1 text-sm`}>
           {pending ? 'Saving…' : 'Revert to pending'}
         </button>
       </form>

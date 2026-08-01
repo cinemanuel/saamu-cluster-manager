@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { SiteNav } from '../site-nav'
 import { StatusBadge, type StatusTone } from '../components/status-badge'
 import { RotationRing } from '../components/rotation-ring'
+import { buttonPrimary, buttonSecondary, buttonTertiary } from '../components/button-styles'
 
 const clusterStatusTone: Record<string, StatusTone> = {
   draft: 'neutral',
@@ -71,10 +72,7 @@ export default async function ClustersPage() {
       <div className="mx-auto w-full max-w-5xl px-4 py-8">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Clusters</h1>
-          <Link
-            href="/clusters/new"
-            className="rounded bg-primary px-4 py-2 text-sm text-white"
-          >
+          <Link href="/clusters/new" className={`${buttonPrimary} px-4 py-2 text-sm`}>
             New cluster
           </Link>
         </div>
@@ -84,17 +82,17 @@ export default async function ClustersPage() {
             Could not load clusters: {clustersError.message}
           </p>
         ) : clusters && clusters.length > 0 ? (
-          <div className="mt-6 overflow-x-auto">
+          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
           <table className="w-full min-w-[880px] table-auto text-left text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="py-2 pr-4 font-medium">Name</th>
-                <th className="py-2 pr-4 font-medium">Owner</th>
-                <th className="py-2 pr-4 font-medium">Contribution</th>
-                <th className="py-2 pr-4 font-medium">Fee</th>
-                <th className="py-2 pr-4 font-medium">Frequency</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 pr-4 font-medium">Rotation</th>
+                <th className="py-2 pr-4 font-medium text-muted">Name</th>
+                <th className="py-2 pr-4 font-medium text-muted">Owner</th>
+                <th className="py-2 pr-4 font-medium text-muted">Contribution</th>
+                <th className="py-2 pr-4 font-medium text-muted">Fee</th>
+                <th className="py-2 pr-4 font-medium text-muted">Frequency</th>
+                <th className="py-2 pr-4 font-medium text-muted">Status</th>
+                <th className="py-2 pr-4 font-medium text-muted">Rotation</th>
                 <th className="py-2" />
               </tr>
             </thead>
@@ -104,7 +102,7 @@ export default async function ClustersPage() {
                 const activePosition = activeCycleNumberByClusterId.get(cluster.id) ?? null
                 const completedCount = completedCountByClusterId.get(cluster.id) ?? 0
                 return (
-                  <tr key={cluster.id} className="border-b border-border">
+                  <tr key={cluster.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
                     <td className="py-3 pr-4 align-middle">{cluster.name}</td>
                     <td className="py-3 pr-4 align-middle">
                       {emailByOwnerId.get(cluster.owner_id) ?? '—'}
@@ -131,7 +129,7 @@ export default async function ClustersPage() {
                           totalPositions={totalPositions}
                           activePosition={activePosition}
                           completedCount={completedCount}
-                          size={24}
+                          size={36}
                           ariaLabel={`${cluster.name}: ${
                             activePosition
                               ? `position ${activePosition} of ${totalPositions} active`
@@ -143,35 +141,20 @@ export default async function ClustersPage() {
                       )}
                     </td>
                     <td className="py-3 align-middle">
-                      <div className="flex flex-wrap justify-end gap-1.5">
-                        <Link
-                          href={`/clusters/${cluster.id}/members`}
-                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
-                        >
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Link href={`/clusters/${cluster.id}/members`} className={`${buttonSecondary} px-2 py-1 text-xs`}>
                           Members
                         </Link>
-                        <Link
-                          href={`/clusters/${cluster.id}/slots`}
-                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
-                        >
+                        <Link href={`/clusters/${cluster.id}/slots`} className={`${buttonSecondary} px-2 py-1 text-xs`}>
                           Rotation
                         </Link>
-                        <Link
-                          href={`/clusters/${cluster.id}/cycles`}
-                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
-                        >
+                        <Link href={`/clusters/${cluster.id}/cycles`} className={`${buttonSecondary} px-2 py-1 text-xs`}>
                           Cycles
                         </Link>
-                        <Link
-                          href={`/clusters/${cluster.id}/payouts`}
-                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
-                        >
+                        <Link href={`/clusters/${cluster.id}/payouts`} className={`${buttonSecondary} px-2 py-1 text-xs`}>
                           Payouts
                         </Link>
-                        <Link
-                          href={`/clusters/${cluster.id}/edit`}
-                          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary hover:text-primary"
-                        >
+                        <Link href={`/clusters/${cluster.id}/edit`} className={`${buttonTertiary} text-xs`}>
                           Edit
                         </Link>
                       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { buttonPrimary } from '../components/button-styles'
 import type { ClusterFormState } from './actions'
 
 const initialState: ClusterFormState = { error: null }
@@ -24,7 +25,7 @@ export function ClusterForm({
   const [feeType, setFeeType] = useState(defaultValues?.fee_type ?? 'fixed')
 
   return (
-    <form action={formAction} className="mt-6 space-y-4">
+    <form action={formAction} className="mt-6 space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm">
       <div className="space-y-1">
         <label htmlFor="name" className="text-sm font-medium">
           Cluster name
@@ -110,11 +111,7 @@ export function ClusterForm({
 
       {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded bg-primary px-4 py-2 text-white disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className={`${buttonPrimary} w-full px-4 py-2`}>
         {pending ? 'Saving…' : submitLabel}
       </button>
     </form>

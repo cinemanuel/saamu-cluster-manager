@@ -75,20 +75,21 @@ export default async function SlotsPage({
         <SlotForm action={createSlot.bind(null, id)} />
 
         {slots && slots.length > 0 ? (
-          <table className="mt-6 w-full text-left text-sm">
+          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="py-2 font-medium">Position</th>
-                <th className="py-2 font-medium">Label</th>
-                <th className="py-2 font-medium">Assigned member(s)</th>
+                <th className="py-2 pr-4 font-medium text-muted">Position</th>
+                <th className="py-2 pr-4 font-medium text-muted">Label</th>
+                <th className="py-2 pr-4 font-medium text-muted">Assigned member(s)</th>
               </tr>
             </thead>
             <tbody>
               {slots.map((slot) => {
                 const assignment = assignmentsBySlotId.get(slot.id) ?? []
                 return (
-                  <tr key={slot.id} className="border-b border-border">
-                    <td className="py-2 align-top">
+                  <tr key={slot.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-top">
                       {slot.position}
                       {slot.position <= 2 && (
                         <span className="ml-2 rounded bg-border px-1.5 py-0.5 text-xs text-muted">
@@ -101,8 +102,8 @@ export default async function SlotsPage({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 align-top">{slot.label ?? '—'}</td>
-                    <td className="py-2">
+                    <td className="py-3 pr-4 align-top">{slot.label ?? '—'}</td>
+                    <td className="py-3 pr-4">
                       <AssignMemberForm
                         action={assignMembers.bind(null, id, slot.id)}
                         members={members ?? []}
@@ -115,6 +116,7 @@ export default async function SlotsPage({
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="mt-6 text-sm text-muted">
             No rotation positions yet. Add one above.

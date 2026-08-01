@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { buttonPrimary } from '../../../components/button-styles'
 import type { CycleFormState } from './actions'
 
 const initialState: CycleFormState = { error: null }
@@ -26,11 +27,7 @@ export function AdvanceCycleForm({
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className={`${buttonPrimary} px-4 py-2 text-sm`}>
         {pending ? 'Advancing…' : 'Complete cycle & advance'}
       </button>
 

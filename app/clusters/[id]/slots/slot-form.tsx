@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { buttonPrimary } from '../../../components/button-styles'
 import type { SlotFormState } from './actions'
 
 const initialState: SlotFormState = { error: null }
@@ -45,11 +46,7 @@ export function SlotForm({
         Shared position (multiple collectors)
       </label>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className={`${buttonPrimary} px-4 py-2 text-sm`}>
         {pending ? 'Adding…' : 'Add position'}
       </button>
 

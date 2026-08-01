@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
 import { StatusBadge, type StatusTone } from '../../../components/status-badge'
+import { buttonTertiary } from '../../../components/button-styles'
 import { StartCycleForm } from './start-cycle-form'
 import { AdvanceCycleForm } from './advance-cycle-form'
 import { startFirstCycle, advanceCycle } from './actions'
@@ -108,7 +109,7 @@ export default async function CyclesPage({
             Rotation complete — all positions have collected.
           </p>
         ) : activeCycle ? (
-          <div className="mt-6 rounded border border-border p-4">
+          <div className="mt-6 rounded-xl border border-border bg-surface p-6 shadow-sm">
             {(() => {
               const slot = slotById.get(activeCycle.slot_id)
               const collectors = collectorNamesBySlotId.get(activeCycle.slot_id) ?? []
@@ -140,16 +141,17 @@ export default async function CyclesPage({
         )}
 
         {cycles && cycles.length > 0 ? (
-          <table className="mt-8 w-full text-left text-sm">
+          <div className="mt-8 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="py-2 font-medium">Cycle</th>
-                <th className="py-2 font-medium">Position</th>
-                <th className="py-2 font-medium">Collector(s)</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Start</th>
-                <th className="py-2 font-medium">End</th>
-                <th className="py-2 font-medium">Payments</th>
+                <th className="py-2 pr-4 font-medium text-muted">Cycle</th>
+                <th className="py-2 pr-4 font-medium text-muted">Position</th>
+                <th className="py-2 pr-4 font-medium text-muted">Collector(s)</th>
+                <th className="py-2 pr-4 font-medium text-muted">Status</th>
+                <th className="py-2 pr-4 font-medium text-muted">Start</th>
+                <th className="py-2 pr-4 font-medium text-muted">End</th>
+                <th className="py-2 pr-4 font-medium text-muted">Payments</th>
               </tr>
             </thead>
             <tbody>
@@ -157,22 +159,22 @@ export default async function CyclesPage({
                 const slot = slotById.get(cycle.slot_id)
                 const collectors = collectorNamesBySlotId.get(cycle.slot_id) ?? []
                 return (
-                  <tr key={cycle.id} className="border-b border-border">
-                    <td className="py-2">{cycle.cycle_number}</td>
-                    <td className="py-2">
+                  <tr key={cycle.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-middle">{cycle.cycle_number}</td>
+                    <td className="py-3 pr-4 align-middle">
                       {slot?.position ?? '—'}
                       {slot?.label ? ` (${slot.label})` : ''}
                     </td>
-                    <td className="py-2">{collectors.length > 0 ? collectors.join(', ') : '—'}</td>
-                    <td className="py-2">
+                    <td className="py-3 pr-4 align-middle">{collectors.length > 0 ? collectors.join(', ') : '—'}</td>
+                    <td className="py-3 pr-4 align-middle">
                       <StatusBadge tone={cycleStatusTone[cycle.status] ?? 'neutral'}>
                         {cycle.status}
                       </StatusBadge>
                     </td>
-                    <td className="py-2">{cycle.start_date}</td>
-                    <td className="py-2">{cycle.end_date ?? '—'}</td>
-                    <td className="py-2">
-                      <Link href={`/clusters/${id}/cycles/${cycle.id}/payments`} className="underline">
+                    <td className="py-3 pr-4 align-middle">{cycle.start_date}</td>
+                    <td className="py-3 pr-4 align-middle">{cycle.end_date ?? '—'}</td>
+                    <td className="py-3 align-middle">
+                      <Link href={`/clusters/${id}/cycles/${cycle.id}/payments`} className={buttonTertiary}>
                         View payments
                       </Link>
                     </td>
@@ -181,6 +183,7 @@ export default async function CyclesPage({
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="mt-8 text-sm text-muted">No cycles yet.</p>
         )}

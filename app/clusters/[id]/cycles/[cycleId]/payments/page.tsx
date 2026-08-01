@@ -80,7 +80,7 @@ export default async function CyclePaymentsPage({
           {cluster.name} — Cycle {cycle.cycle_number} payments
         </h1>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm sm:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-5">
           <div>
             <p className="text-muted">Pool</p>
             <p className="font-medium">{pool.toFixed(2)}</p>
@@ -110,15 +110,16 @@ export default async function CyclePaymentsPage({
         )}
 
         {members && members.length > 0 ? (
-          <table className="mt-6 w-full text-left text-sm">
+          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="py-2 font-medium">Member</th>
-                <th className="py-2 font-medium">Amount</th>
-                <th className="py-2 font-medium">Due</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Paid</th>
-                <th className="py-2 font-medium">Actions</th>
+                <th className="py-2 pr-4 font-medium text-muted">Member</th>
+                <th className="py-2 pr-4 font-medium text-muted">Amount</th>
+                <th className="py-2 pr-4 font-medium text-muted">Due</th>
+                <th className="py-2 pr-4 font-medium text-muted">Status</th>
+                <th className="py-2 pr-4 font-medium text-muted">Paid</th>
+                <th className="py-2 font-medium text-muted">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -126,9 +127,9 @@ export default async function CyclePaymentsPage({
                 const payment = paymentsByMemberId.get(member.id)
                 if (!payment) {
                   return (
-                    <tr key={member.id} className="border-b border-border">
-                      <td className="py-2 align-top">{member.full_name}</td>
-                      <td colSpan={5} className="py-2 align-top text-muted">
+                    <tr key={member.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                      <td className="py-3 pr-4 align-top">{member.full_name}</td>
+                      <td colSpan={5} className="py-3 align-top text-muted">
                         No payment record for this cycle.
                       </td>
                     </tr>
@@ -138,11 +139,11 @@ export default async function CyclePaymentsPage({
                 const isLate = payment.status === 'pending' && payment.due_date < today
 
                 return (
-                  <tr key={member.id} className="border-b border-border">
-                    <td className="py-2 align-top">{fullNameByMemberId.get(member.id)}</td>
-                    <td className="py-2 align-top">{Number(payment.amount).toFixed(2)}</td>
-                    <td className="py-2 align-top">{payment.due_date}</td>
-                    <td className="py-2 align-top">
+                  <tr key={member.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-top">{fullNameByMemberId.get(member.id)}</td>
+                    <td className="py-3 pr-4 align-top">{Number(payment.amount).toFixed(2)}</td>
+                    <td className="py-3 pr-4 align-top">{payment.due_date}</td>
+                    <td className="py-3 pr-4 align-top">
                       {isLate ? (
                         <StatusBadge tone="danger">Late</StatusBadge>
                       ) : payment.status === 'paid' ? (
@@ -151,12 +152,12 @@ export default async function CyclePaymentsPage({
                         <StatusBadge tone="neutral">{payment.status}</StatusBadge>
                       )}
                     </td>
-                    <td className="py-2 align-top">
+                    <td className="py-3 pr-4 align-top">
                       {payment.status === 'paid'
                         ? `${payment.paid_at ? payment.paid_at.slice(0, 10) : '—'} (${payment.payment_method ?? '—'})`
                         : '—'}
                     </td>
-                    <td className="py-2 align-top">
+                    <td className="py-3 align-top">
                       {payment.status === 'pending' ? (
                         <PendingPaymentActions
                           markPaidAction={markPaid.bind(null, id, cycleId, payment.id)}
@@ -173,6 +174,7 @@ export default async function CyclePaymentsPage({
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="mt-6 text-sm text-muted">No members in this cluster yet.</p>
         )}

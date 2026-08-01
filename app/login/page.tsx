@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { buttonPrimary } from '../components/button-styles'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -37,7 +38,7 @@ export default function LoginPage() {
     <div className="flex flex-1 items-center justify-center px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-border p-6"
+        className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm"
       >
         <h1 className="text-xl font-semibold">Saamu Cluster Manager</h1>
         <p className="text-sm text-muted">
@@ -76,11 +77,7 @@ export default function LoginPage() {
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded bg-primary px-4 py-2 text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={submitting} className={`${buttonPrimary} w-full px-4 py-2`}>
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>

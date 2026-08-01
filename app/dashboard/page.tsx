@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { SiteNav } from '../site-nav'
 import { StatusBadge, type StatusTone } from '../components/status-badge'
 import { RotationRing } from '../components/rotation-ring'
+import { buttonSecondary, buttonTertiary } from '../components/button-styles'
 
 const clusterStatusTone: Record<string, StatusTone> = {
   draft: 'neutral',
@@ -166,10 +167,10 @@ export default async function DashboardPage({
                 <Link
                   key={cluster.id}
                   href={`/dashboard?cluster=${cluster.id}`}
-                  className={`rounded-full border px-3 py-1 text-sm ${
+                  className={`rounded-full border px-3 py-1 text-sm transition-colors ${
                     cluster.id === selectedCluster?.id
                       ? 'border-primary bg-primary text-white'
-                      : 'border-border'
+                      : 'border-border bg-surface hover:border-primary hover:text-primary'
                   }`}
                 >
                   {cluster.name}
@@ -184,17 +185,17 @@ export default async function DashboardPage({
               </p>
             ) : (
               <>
-                <div className="mt-4 flex flex-wrap gap-3 text-sm">
-                  <Link href={`/clusters/${selectedCluster.id}/members`} className="underline">
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+                  <Link href={`/clusters/${selectedCluster.id}/members`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Members
                   </Link>
-                  <Link href={`/clusters/${selectedCluster.id}/slots`} className="underline">
+                  <Link href={`/clusters/${selectedCluster.id}/slots`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Rotation
                   </Link>
-                  <Link href={`/clusters/${selectedCluster.id}/cycles`} className="underline">
+                  <Link href={`/clusters/${selectedCluster.id}/cycles`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Cycles
                   </Link>
-                  <Link href={`/clusters/${selectedCluster.id}/payouts`} className="underline">
+                  <Link href={`/clusters/${selectedCluster.id}/payouts`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Payouts
                   </Link>
                   {/* Other cluster pages (list, cycles, payments) don't yet hide their
@@ -202,7 +203,7 @@ export default async function DashboardPage({
                       the button still renders and would error if clicked. Only this
                       dashboard hides them so far; see BUILD_LOG Entry 9 fast-follow. */}
                   {!isSuperAdmin && !isSuperAdminUnknown && (
-                    <Link href={`/clusters/${selectedCluster.id}/edit`} className="underline">
+                    <Link href={`/clusters/${selectedCluster.id}/edit`} className={buttonTertiary}>
                       Edit
                     </Link>
                   )}
@@ -217,7 +218,7 @@ export default async function DashboardPage({
                       Could not load cluster status: {cyclesError.message}
                     </p>
                   ) : (
-                    <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm sm:grid-cols-4">
+                    <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                       <div>
                         <p className="text-muted">Status</p>
                         <p className="mt-1">
@@ -253,7 +254,7 @@ export default async function DashboardPage({
                             totalPositions={totalPositions}
                             activePosition={activeCycle?.cycle_number ?? null}
                             completedCount={completedCount}
-                            size={32}
+                            size={64}
                             ariaLabel={`${selectedCluster.name}: ${
                               activeCycle
                                 ? `position ${activeCycle.cycle_number} of ${totalPositions} active`
@@ -285,7 +286,7 @@ export default async function DashboardPage({
                       Could not load payment status: {paymentsError.message}
                     </p>
                   ) : (
-                    <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm sm:grid-cols-4">
+                    <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                       <div>
                         <p className="text-muted">Paid</p>
                         <p className="font-medium text-primary">{paidCount}</p>
@@ -326,7 +327,7 @@ export default async function DashboardPage({
                     </p>
                   ) : (
                     <>
-                      <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm sm:grid-cols-4">
+                      <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                         <div>
                           <p className="text-muted">Next collector</p>
                           <p className="font-medium">
@@ -378,7 +379,7 @@ export default async function DashboardPage({
                       Could not load lifetime totals: {payoutsError.message}
                     </p>
                   ) : (
-                    <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm">
+                    <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm">
                       <div>
                         <p className="text-muted">Total coordinator earnings</p>
                         <p className="font-medium">

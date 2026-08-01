@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
+import { buttonPrimary, buttonTertiary } from '../../../components/button-styles'
 
 export default async function MembersPage({
   params,
@@ -56,23 +57,21 @@ export default async function MembersPage({
 
         <div className="mt-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold">{cluster.name} — Members</h1>
-          <Link
-            href={`/clusters/${id}/members/new`}
-            className="rounded bg-primary px-4 py-2 text-sm text-white"
-          >
+          <Link href={`/clusters/${id}/members/new`} className={`${buttonPrimary} px-4 py-2 text-sm`}>
             New member
           </Link>
         </div>
 
         {members && members.length > 0 ? (
-          <table className="mt-6 w-full text-left text-sm">
+          <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="py-2 font-medium">Photo</th>
-                <th className="py-2 font-medium">Name</th>
-                <th className="py-2 font-medium">Phone</th>
-                <th className="py-2 font-medium">Email</th>
-                <th className="py-2 font-medium">Tier</th>
+                <th className="py-2 pr-4 font-medium text-muted">Photo</th>
+                <th className="py-2 pr-4 font-medium text-muted">Name</th>
+                <th className="py-2 pr-4 font-medium text-muted">Phone</th>
+                <th className="py-2 pr-4 font-medium text-muted">Email</th>
+                <th className="py-2 pr-4 font-medium text-muted">Tier</th>
                 <th className="py-2" />
               </tr>
             </thead>
@@ -80,8 +79,8 @@ export default async function MembersPage({
               {members.map((member) => {
                 const photoUrl = member.photo_path ? photoUrlByPath.get(member.photo_path) : undefined
                 return (
-                  <tr key={member.id} className="border-b border-border">
-                    <td className="py-2">
+                  <tr key={member.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-middle">
                       {photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={photoUrl} alt="" className="h-8 w-8 rounded object-cover" />
@@ -89,12 +88,12 @@ export default async function MembersPage({
                         <span className="block h-8 w-8 rounded bg-border" />
                       )}
                     </td>
-                    <td className="py-2">{member.full_name}</td>
-                    <td className="py-2">{member.phone ?? '—'}</td>
-                    <td className="py-2">{member.email ?? '—'}</td>
-                    <td className="py-2">Tier {member.kyc_tier}</td>
-                    <td className="py-2 text-right">
-                      <Link href={`/clusters/${id}/members/${member.id}/edit`} className="underline">
+                    <td className="py-3 pr-4 align-middle">{member.full_name}</td>
+                    <td className="py-3 pr-4 align-middle">{member.phone ?? '—'}</td>
+                    <td className="py-3 pr-4 align-middle">{member.email ?? '—'}</td>
+                    <td className="py-3 pr-4 align-middle">Tier {member.kyc_tier}</td>
+                    <td className="py-3 align-middle text-right">
+                      <Link href={`/clusters/${id}/members/${member.id}/edit`} className={buttonTertiary}>
                         Edit
                       </Link>
                     </td>
@@ -103,6 +102,7 @@ export default async function MembersPage({
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="mt-6 text-sm text-muted">
             No members yet. Add one to get started.

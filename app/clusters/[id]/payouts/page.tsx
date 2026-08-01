@@ -121,7 +121,7 @@ export default async function ClusterPayoutsPage({
               </p>
             ) : upcoming ? (
               <>
-                <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm sm:grid-cols-4">
+                <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                   <div>
                     <p className="text-muted">Total pot</p>
                     <p className="font-medium">{upcoming.totalPot.toFixed(2)}</p>
@@ -158,7 +158,7 @@ export default async function ClusterPayoutsPage({
               Could not load lifetime totals: {payoutsError.message}
             </p>
           )}
-          <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-border p-4 text-sm">
+          <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm">
             <div>
               <p className="text-muted">Total coordinator earnings</p>
               <p className="font-medium">
@@ -186,30 +186,32 @@ export default async function ClusterPayoutsPage({
               Could not load payout history: {payoutsError.message}
             </p>
           ) : payouts && payouts.length > 0 ? (
-            <table className="mt-2 w-full text-left text-sm">
+            <div className="mt-2 overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+            <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="py-2 font-medium">Cycle</th>
-                  <th className="py-2 font-medium">Payout date</th>
-                  <th className="py-2 font-medium">Total pot</th>
-                  <th className="py-2 font-medium">Coordinator fee</th>
-                  <th className="py-2 font-medium">Net payout</th>
-                  <th className="py-2 font-medium">Recipient</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Cycle</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Payout date</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Total pot</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Coordinator fee</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Net payout</th>
+                  <th className="py-2 font-medium text-muted">Recipient</th>
                 </tr>
               </thead>
               <tbody>
                 {payouts.map((payout) => (
-                  <tr key={payout.id} className="border-b border-border">
-                    <td className="py-2">{cycleById.get(payout.cycle_id)?.cycle_number ?? '—'}</td>
-                    <td className="py-2">{payout.payout_date}</td>
-                    <td className="py-2">{Number(payout.total_pot).toFixed(2)}</td>
-                    <td className="py-2">{Number(payout.fee_amount).toFixed(2)}</td>
-                    <td className="py-2">{Number(payout.net_payout).toFixed(2)}</td>
-                    <td className="py-2">{recipientByPayoutId.get(payout.id) ?? '—'}</td>
+                  <tr key={payout.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-middle">{cycleById.get(payout.cycle_id)?.cycle_number ?? '—'}</td>
+                    <td className="py-3 pr-4 align-middle">{payout.payout_date}</td>
+                    <td className="py-3 pr-4 align-middle">{Number(payout.total_pot).toFixed(2)}</td>
+                    <td className="py-3 pr-4 align-middle">{Number(payout.fee_amount).toFixed(2)}</td>
+                    <td className="py-3 pr-4 align-middle">{Number(payout.net_payout).toFixed(2)}</td>
+                    <td className="py-3 align-middle">{recipientByPayoutId.get(payout.id) ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <p className="mt-2 text-sm text-muted">No payouts recorded yet.</p>
           )}

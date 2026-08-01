@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { buttonSecondary } from '../../../components/button-styles'
 import type { SlotFormState } from './actions'
 
 const initialState: SlotFormState = { error: null }
@@ -56,11 +57,7 @@ export function AssignMemberForm({
       )}
 
       <div className="flex items-center gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded border border-border px-2 py-1 text-sm disabled:opacity-50"
-        >
+        <button type="submit" disabled={pending} className={`${buttonSecondary} px-2 py-1 text-sm`}>
           {pending ? 'Saving…' : 'Assign'}
         </button>
         {state.error && <span className="text-sm text-danger">{state.error}</span>}

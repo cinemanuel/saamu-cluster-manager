@@ -2,8 +2,11 @@
 
 :root {
   --color-bg: #FAF8F5;
+  --color-surface: #FFFFFF;
   --color-ink: #1A1A18;
   --color-primary: #1F6E4A;
+  --color-primary-hover: #164E35;
+  --color-primary-active: #0D2E1F;
   --color-accent: #C08A2E;
   --color-danger: #C0392B;
   --color-border: #E5E1DA;
@@ -12,8 +15,11 @@
 
 @theme inline {
   --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
   --color-ink: var(--color-ink);
   --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-active: var(--color-primary-active);
   --color-accent: var(--color-accent);
   --color-danger: var(--color-danger);
   --color-border: var(--color-border);

@@ -2,7 +2,7 @@
 
 This is the source of truth for the app's visual language: color tokens, typography, the rotation-ring component, and the reasoning behind them. It exists so future work stays consistent without re-deriving these decisions from scratch.
 
-**Status:** Locked in for the Entry 10 visual design pass (July 2026). Applies to the whole app going forward.
+**Status:** Locked in for the Entry 10 visual design pass (July 2026), extended by the elevation/hierarchy polish pass that followed it. Applies to the whole app going forward.
 
 ## Principles
 
@@ -24,14 +24,19 @@ Defined as CSS custom properties in `app/globals.css`, exposed to Tailwind via `
 | Token | Hex | Tailwind class (proposed) | Usage |
 |---|---|---|---|
 | `--color-bg` | `#FAF8F5` | `bg-bg` | Page background |
+| `--color-surface` | `#FFFFFF` | `bg-surface` | Elevated content: cards, tiles, tables, the nav bar, standalone forms. Always paired with `border-border` + `shadow-sm` (see [Elevation](#elevation--surfaces)) |
 | `--color-ink` | `#1A1A18` | `text-ink` | Primary text |
 | `--color-primary` | `#1F6E4A` | `bg-primary` / `text-primary` | Trust accent — confirmed/paid/positive actions, primary buttons |
+| `--color-primary-hover` | `#164E35` | `hover:bg-primary-hover` | Primary button hover state — same hue/saturation as primary, darkened 8% lightness |
+| `--color-primary-active` | `#0D2E1F` | `active:bg-primary-active` | Primary button press state — darkened 16% lightness |
 | `--color-accent` | `#C08A2E` | `bg-accent` | Status accent — "active turn / needs attention." **Badge fills only, never as plain text** (see [Contrast](#contrast-verification)) |
 | `--color-danger` | `#C0392B` | `text-danger` / `bg-danger` | Late/overdue payments only. Used sparingly — this is a warning color, not a general error color |
 | `--color-border` | `#E5E1DA` | `border-border` | All borders/dividers |
 | `--color-muted` | `#767167` | `text-muted` | Secondary/helper text, labels |
 
 `--color-muted` is **not** the `#8A8579` originally proposed — it's been darkened (same hue, ~42°, same ~7% saturation, lower lightness) to actually pass AA contrast for small text. See below.
+
+`--color-primary-hover`/`--color-primary-active` are the same hue (152.7°) and saturation (56%) as `--color-primary`, only darkened — not arbitrary darker greens.
 
 ### Contrast verification
 
@@ -51,8 +56,60 @@ Computed via the WCAG relative-luminance formula, not eyeballed. AA requires 4.5
 | `#C0392B` badge fill + charcoal text | 3.20:1 | Fails for normal text — use white text on red badges |
 | `#767167` (muted, final) on bg | 4.58:1 | Pass |
 | `#E5E1DA` (border) on bg | 1.23:1 | Fails non-text contrast, but this is a deliberately subtle divider, not a load-bearing UI boundary — consistent with this app's pre-existing border style, not a regression |
+| `#1A1A18` text on `#FFFFFF` surface | 17.43:1 | Pass — slightly better than on bg |
+| `#767167` (muted) on `#FFFFFF` surface | 4.85:1 | Pass |
+| `#E5E1DA` (border) on `#FFFFFF` surface | 1.30:1 | Same non-text caveat as above |
+| `#164E35` (primary-hover) + white text | 9.65:1 | Pass |
+| `#0D2E1F` (primary-active) + white text | 14.71:1 | Pass |
+
+Every text token has **equal or better** contrast on the white surface than it had on the page background — introducing `--color-surface` doesn't regress anything already verified above.
 
 **Rule of thumb:** green and red are legible as plain colored text *or* as badges. Amber is legible **only** as a badge fill with dark (`#1A1A18`) text — it must never be used as a text color on its own.
+
+## Elevation & surfaces
+
+Every content container — data tables, dashboard stat tiles, the nav bar, the two standalone forms (cluster, member) — sits on `bg-surface` (white) rather than directly on `bg-bg` (warm off-white), with `border border-border` and Tailwind's built-in `shadow-sm` utility. No bespoke shadow token: Tailwind's default shadow is already soft and neutral enough for this purpose, and inventing a tinted one would be custom CSS for no real gain (see "Fast").
+
+**Corner radius is deliberately different per element type**, so shape alone tells you what something is before you read it:
+
+| Element type | Radius | Class |
+|---|---|---|
+| Cards/tiles/tables/forms (elevation containers) | 12px | `rounded-xl` |
+| Secondary buttons | 8px | `rounded-lg` |
+| Primary buttons | 8px | `rounded-lg` |
+| Status badges, the rotation-ring's legend | fully round | `rounded-full` |
+
+This matters because the first version of the clusters-list action row used `rounded-full` for its button chips — identical to `StatusBadge`, making informational badges and clickable actions look like the same kind of thing. Buttons and badges must never share a corner radius.
+
+**Which forms get elevated cards:** only the two standalone-page forms, `cluster-form.tsx` and `member-form.tsx` (they're the entire content of their own page). The small inline forms — add position, assign member, start/advance cycle, mark paid/waive/revert — do **not** get their own card; they're compact, embedded controls that live inside a page section (a table row, a tile) that's already elevated. Nesting a card inside a card there would read as visual clutter, not hierarchy.
+
+**Table rows** get `hover:bg-bg` (the row highlights to the page's own background color, not a new token — a free, correct-looking hover state since the row already sits on a lighter surface than the page) and `last:border-b-0` so the final row doesn't double up its divider against the card's own bottom border.
+
+## Spacing scale
+
+Not new tokens — Tailwind's default spacing scale is already 4px-based, so `1/2/3/4/6/8/12` already equal exactly `4/8/12/16/24/32/48px`. The rule is to use **only these steps, deliberately**, rather than the incidental mix (`gap-1.5`, `px-2.5`, `py-1.5` — 6px/10px/6px, none of them on the scale) that had crept in.
+
+| Step | Px | Typical use |
+|---|---|---|
+| `1` | 4px | Icon-to-label gaps, tightest spacing |
+| `2` | 8px | Compact control padding, gaps between adjacent chips/badges |
+| `3` | 12px | Form-row gaps, small inline form padding |
+| `4` | 16px | Standard input/button padding, table cell padding |
+| `6` | 24px | Card internal padding, section-to-section gaps |
+| `8` | 32px | Larger page-level spacing |
+| `12` | 48px | Major page-section separation |
+
+## Button hierarchy
+
+Three tiers, defined as shared class-string constants in `app/components/button-styles.ts` (`buttonPrimary`, `buttonSecondary`, `buttonTertiary`) — plain strings rather than a wrapper component, since they're used on both `<button>` (Server Action submits) and `<Link>` (navigation) and carry no other logic. Callers append their own padding/text-size classes on top; the base strings deliberately exclude sizing so a caller's size never fights the shared string for the same CSS property.
+
+| Tier | Look | Used for |
+|---|---|---|
+| **Primary** | Filled `bg-primary`, white text, `shadow-sm`, `rounded-lg`, `hover:bg-primary-hover`, `active:bg-primary-active` | New cluster/member/position, Save changes, Start/Advance cycle, Mark paid, Sign in — the one clearly-intended action per page |
+| **Secondary** | `border-border` + `bg-surface`, `rounded-lg`, `hover:border-primary hover:text-primary` | Frequent nav-style actions: Members/Rotation/Cycles/Payouts (clusters list and dashboard quick-links), Assign, Waive, Revert to pending, Sign out |
+| **Tertiary/quiet** | Plain `text-muted`, `hover:text-ink hover:underline`, no border or fill | Infrequent actions: Edit, "View payments" |
+
+Text-only, no icons — this app has exactly one SVG (the rotation-ring); adding an icon set for tertiary buttons was considered and deliberately deferred rather than assumed.
 
 ## Status color mapping
 
@@ -81,7 +138,8 @@ type RotationRingProps = {
   activePosition: number | null
   /** Count of positions that have already completed their payout (used to fill segments before the active one). */
   completedCount: number
-  /** Diameter in pixels. Defaults to a compact size for list/tile use. */
+  /** Diameter in pixels. Defaults to a legible size — never shrink this
+   * to the point of being unreadable, it's the signature element. */
   size?: number
   /** Accessible label, e.g. "Cluster 66: position 3 of 5 active." Required — this is a visual-only indicator otherwise. */
   ariaLabel: string
@@ -95,10 +153,29 @@ type RotationRingProps = {
 - Remaining positions: unfilled, stroked `#E5E1DA`
 - Draft cluster (`activePosition === null`, `completedCount === 0`): every segment unfilled/neutral
 
+### Legend
+
+The ring alone doesn't communicate "3 of 5" at a glance — it's a dial, not a readout. The component renders a small text legend next to it: `${activePosition}/${totalPositions}` when a cycle is active, `${completedCount}/${totalPositions}` otherwise (draft or fully completed). No new props needed — this is computed internally from the existing prop contract. The legend is marked `aria-hidden`; the SVG's own `aria-label` already carries the equivalent information for screen readers, so the two aren't announced twice.
+
+Legend text size follows ring size: `text-sm font-medium text-ink` at 48px+ (dashboard), `text-xs font-medium text-muted` below that (clusters list) — this is a component-internal threshold (`size >= 48`), not a prop.
+
+### Sizes
+
+The ring is this app's signature element and was previously too small to read (24px list, 32px dashboard). Current defaults:
+
+- Clusters list: `size={36}`
+- Dashboard cluster-status tile: `size={64}` — it has a whole dedicated tile, unlike a table row
+
 ### Usage sites
 
 - Dashboard's cluster-status tile (one ring per selected cluster)
 - Clusters list (one small ring per row) — this requires a new query on that page (slot count + active cycle position per cluster), since the clusters list currently fetches only `clusters` table columns and has no cycle/slot data today
+
+## Navigation
+
+`app/site-nav.tsx` is now `bg-surface` + `shadow-sm`, wider link spacing (`gap-6`, 24px), a heavier app-title (`text-base font-semibold`, was the same weight/size as everything else), and a visible active-link indicator (`border-b-2 border-primary` under the current section, `border-b-2 border-transparent` otherwise, so the layout doesn't shift between states).
+
+**This is the app's first Client Component** (`'use client'`, `usePathname()`), needed to know which link is active. Everything else in the app is server-rendered. The JS cost is negligible (a nav bar, no data fetching), but it's a real pattern shift worth naming given "Fast" is a stated principle — the alternative (passing the active section as a server-rendered prop from every page) was considered and rejected as more boilerplate for no real benefit here.
 
 ## Dark mode
 
