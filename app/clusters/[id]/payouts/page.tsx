@@ -220,7 +220,9 @@ export default async function ClusterPayoutsPage({
             />
             </div>
           ) : (
-            <p className="mt-2 text-sm text-muted">No payouts recorded yet.</p>
+            <p className="mt-2 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
+              No payouts recorded yet.
+            </p>
           )}
         </div>
       </div>

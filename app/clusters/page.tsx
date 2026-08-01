@@ -188,7 +188,7 @@ export default async function ClustersPage() {
           />
           </div>
         ) : (
-          <p className="mt-6 text-sm text-muted">
+          <p className="mt-6 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
             No clusters yet. Create one to get started.
           </p>
         )}

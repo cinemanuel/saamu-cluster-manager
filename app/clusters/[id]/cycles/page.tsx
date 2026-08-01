@@ -191,7 +191,9 @@ export default async function CyclesPage({
           />
           </div>
         ) : (
-          <p className="mt-8 text-sm text-muted">No cycles yet.</p>
+          <p className="mt-8 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
+            No cycles yet.
+          </p>
         )}
       </div>
     </>

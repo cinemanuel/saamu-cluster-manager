@@ -183,7 +183,9 @@ export default async function CyclePaymentsPage({
           />
           </div>
         ) : (
-          <p className="mt-6 text-sm text-muted">No members in this cluster yet.</p>
+          <p className="mt-6 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
+            No members in this cluster yet.
+          </p>
         )}
       </div>
     </>

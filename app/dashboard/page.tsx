@@ -155,9 +155,9 @@ export default async function DashboardPage({
             Could not load clusters: {clustersError.message}
           </p>
         ) : !clusters || clusters.length === 0 ? (
-          <p className="mt-6 text-sm text-muted">
+          <p className="mt-6 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
             No clusters yet.{' '}
-            <Link href="/clusters/new" className="underline">
+            <Link href="/clusters/new" className={buttonTertiary}>
               Create one
             </Link>{' '}
             to get started.

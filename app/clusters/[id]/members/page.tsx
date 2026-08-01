@@ -110,7 +110,7 @@ export default async function MembersPage({
           />
           </div>
         ) : (
-          <p className="mt-6 text-sm text-muted">
+          <p className="mt-6 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
             No members yet. Add one to get started.
           </p>
         )}
