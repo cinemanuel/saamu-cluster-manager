@@ -118,9 +118,11 @@ Applied consistently everywhere a status already appears (dashboard, clusters li
 | State | Treatment |
 |---|---|
 | Paid / confirmed / positive action | `#1F6E4A` — badge (white text) or plain text |
-| Active turn / pending / needs attention | `#C08A2E` — **badge only**, charcoal text |
-| Draft / not started | Neutral — `#E5E1DA` fill, `#1A1A18` text (or plain `text-muted`) |
+| Active turn (the rotation-wheel concept — whose position is currently collecting) | `#C08A2E` — **badge only**, charcoal text |
+| Pending (not yet due), draft, waived, not started | Neutral — `#E5E1DA` fill, `#1A1A18` text (or plain `text-muted`) |
 | Late | `#C0392B` — badge (white text) or plain text, used sparingly, only for genuinely overdue payments |
+
+**"Active turn" is deliberately narrower than "pending."** Amber means *this specific position/cluster is the one currently collecting* — a single, rare thing per cluster (the rotation dial's active segment, a cluster's `active` status). A payment that's merely `pending` (not yet due, no action needed yet) is the normal, expected state for most members most of the time; coloring every one of those amber would mean most of a payments table is amber, which dilutes the signal amber is supposed to carry and reads as decoration rather than meaning. Only a payment that's actually overdue escalates to `danger` (red). This distinction matters enough to spell out because the two concepts ("active turn" and "pending") look similar in English but aren't the same axis — one is about rotation position, the other is about payment timing.
 
 ## The rotation-ring component
 
