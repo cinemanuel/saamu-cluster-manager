@@ -63,6 +63,7 @@ export default async function DashboardPage({
   let activeCycle: (typeof cycles)[number] | null = null
   let totalPot = 0
   let totalPositions = 0
+  let slotsError: { message: string } | null = null
 
   if (selectedCluster) {
     const [cyclesResult, membersResult, slotsResult] = await Promise.all([
@@ -78,6 +79,7 @@ export default async function DashboardPage({
     cyclesError = cyclesResult.error
     members = membersResult.data ?? []
     totalPositions = (slotsResult.data ?? []).length
+    slotsError = slotsResult.error
 
     activeCycle = cycles.find((cycle) => cycle.status === 'active') ?? null
     totalPot = members.length * Number(selectedCluster.contribution_amount)
@@ -249,7 +251,9 @@ export default async function DashboardPage({
                       </div>
                       <div>
                         <p className="text-muted">Rotation</p>
-                        {totalPositions > 0 ? (
+                        {slotsError ? (
+                          <p className="text-sm text-danger">Unavailable</p>
+                        ) : totalPositions > 0 ? (
                           <RotationRing
                             totalPositions={totalPositions}
                             activePosition={activeCycle?.cycle_number ?? null}

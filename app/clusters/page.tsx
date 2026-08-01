@@ -37,15 +37,17 @@ export default async function ClustersPage() {
   }
   const emailByOwnerId = new Map(owners.map((owner) => [owner.id, owner.email]))
 
-  const { data: slots } =
+  const { data: slots, error: slotsError } =
     clusterIds.length > 0
       ? await supabase.from('slots').select('cluster_id').in('cluster_id', clusterIds)
-      : { data: [] }
+      : { data: [], error: null }
 
-  const { data: rotationCycles } =
+  const { data: rotationCycles, error: rotationCyclesError } =
     clusterIds.length > 0
       ? await supabase.from('cycles').select('cluster_id, cycle_number, status').in('cluster_id', clusterIds)
-      : { data: [] }
+      : { data: [], error: null }
+
+  const rotationUnavailable = Boolean(slotsError || rotationCyclesError)
 
   const positionCountByClusterId = new Map<string, number>()
   for (const slot of slots ?? []) {
@@ -124,7 +126,9 @@ export default async function ClustersPage() {
                       </StatusBadge>
                     </td>
                     <td className="py-3 pr-4 align-middle">
-                      {totalPositions > 0 ? (
+                      {rotationUnavailable ? (
+                        <span className="text-xs text-danger">Unavailable</span>
+                      ) : totalPositions > 0 ? (
                         <RotationRing
                           totalPositions={totalPositions}
                           activePosition={activePosition}
