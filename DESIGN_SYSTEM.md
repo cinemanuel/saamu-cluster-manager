@@ -203,6 +203,14 @@ The component itself defaults to `size={40}` when the prop is omitted — no cal
 - Dashboard's cluster-status tile (one ring per selected cluster)
 - Clusters list (one small ring per row) — the page queries `slots` (for slot count) and `cycles` (for active cycle position) per cluster to render this
 
+## Dashboard greeting and tip of the day
+
+A design brief was reviewed for a broader dashboard rework (hero sections, a "community pulse," activity feeds, member stories, new CTAs) and mostly rejected — it assumed product architecture this app doesn't have, and two parts were real privacy/security concerns rather than just scope: cross-coordinator activity aggregation, and displaying named members' financial actions as a public feed. Neither is happening. Two small, honest pieces were pulled out and built instead:
+
+**Greeting:** the dashboard's `<h1>` is `Welcome back, {displayName}.` instead of the plain word "Dashboard." `displayName` is `user.user_metadata?.full_name`, falling back to `user.email` — the only field guaranteed present on an authenticated session, already used elsewhere (`app/page.tsx`: "Signed in as {user?.email}"). There's no `profiles`/`coordinators` table in this schema (`full_name` exists only on `members`, i.e. rotation participants, not the coordinator); `user_metadata.full_name` may or may not be populated depending on how an account was provisioned, so the fallback is load-bearing, not decorative.
+
+**Tip of the day:** a small card (`rounded-xl border border-border bg-surface p-4 shadow-sm`, matching the app's standard card elevation but sized down from the p-6 stat tiles) showing one of a fixed set of five tips (`app/dashboard/tips.ts`), written as real, generic ajo/esusu savings-discipline advice — never a fabricated platform statistic or named-user activity. Rotation is deterministic by calendar day (UTC-based day-of-year modulo the tip count), not random and not client-side — every viewer sees the same tip on a given day, and it's a plain Server Component like the rest of the dashboard.
+
 ## Navigation
 
 `app/site-nav.tsx` is now `bg-surface` + `shadow-sm`, wider link spacing (`gap-6`, 24px), a heavier app-title (`text-base font-semibold`, was the same weight/size as everything else), and a visible active-link indicator (`border-b-2 border-primary` under the current section, `border-b-2 border-transparent` otherwise, so the layout doesn't shift between states).

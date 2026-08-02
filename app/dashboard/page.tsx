@@ -5,6 +5,7 @@ import { SiteNav } from '../site-nav'
 import { StatusBadge, type StatusTone } from '../components/status-badge'
 import { RotationRing } from '../components/rotation-ring'
 import { buttonSecondary, buttonTertiary } from '../components/button-styles'
+import { getTipOfTheDay } from './tips'
 
 const clusterStatusTone: Record<string, StatusTone> = {
   draft: 'neutral',
@@ -21,6 +22,14 @@ export default async function DashboardPage({
   const { cluster: requestedClusterId } = await searchParams
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  // user_metadata.full_name depends on how the account was provisioned and
+  // isn't guaranteed to be set -- email is the one field every authenticated
+  // session actually has, so it's the real fallback, not a placeholder.
+  const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? null
 
   const [isSuperAdminResult, clustersResult] = await Promise.all([
     supabase.rpc('is_super_admin'),
@@ -143,12 +152,19 @@ export default async function DashboardPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+        <h1 className="text-xl font-semibold">
+          {displayName ? `Welcome back, ${displayName}.` : 'Welcome back.'}
+        </h1>
         {isSuperAdmin && (
           <p className="mt-1 text-xs text-muted">
             Viewing as super-admin — read-only across all coordinators.
           </p>
         )}
+
+        <div className="mt-4 rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <p className="text-sm font-medium text-muted">Tip of the day</p>
+          <p className="mt-1 text-sm">{getTipOfTheDay()}</p>
+        </div>
 
         {clustersError ? (
           <p className="mt-6 text-sm text-danger">
