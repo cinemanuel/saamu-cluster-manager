@@ -5,6 +5,7 @@ import { SiteNav } from '../site-nav'
 import { StatusBadge, type StatusTone } from '../components/status-badge'
 import { RotationRing } from '../components/rotation-ring'
 import { buttonPrimary, buttonSecondary, buttonTertiary } from '../components/button-styles'
+import { FirstRunWelcome } from '../components/first-run-welcome'
 
 const clusterStatusTone: Record<string, StatusTone> = {
   draft: 'neutral',
@@ -188,9 +189,7 @@ export default async function ClustersPage() {
           />
           </div>
         ) : (
-          <p className="mt-6 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
-            No clusters yet. Create one to get started.
-          </p>
+          <FirstRunWelcome showCta={false} />
         )}
       </div>
     </>

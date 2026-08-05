@@ -211,6 +211,14 @@ A design brief was reviewed for a broader dashboard rework (hero sections, a "co
 
 **Tip of the day:** a small card (`rounded-xl border border-border bg-surface p-4 shadow-sm`, matching the app's standard card elevation but sized down from the p-6 stat tiles) showing one of a fixed set of five tips (`app/dashboard/tips.ts`), written as real, generic ajo/esusu savings-discipline advice — never a fabricated platform statistic or named-user activity. Rotation is deterministic by calendar day (UTC-based day-of-year modulo the tip count), not random and not client-side — every viewer sees the same tip on a given day, and it's a plain Server Component like the rest of the dashboard.
 
+## First-run welcome (zero clusters)
+
+`app/components/first-run-welcome.tsx`, shared by `/dashboard` and `/clusters`, replaces both pages' old terse "No clusters yet. Create one to get started." card for a coordinator who hasn't created a cluster yet. Checked where a brand-new coordinator actually lands before building this: sign-in redirects to `/` (a thin "Manage clusters" landing screen), from which `/clusters` is the more likely first real stop, but `/dashboard` is one nav-click away — both needed the same treatment, not just one.
+
+**Replaces, doesn't add to,** the old empty-state card — the two would otherwise stack two overlapping "you have no clusters" messages on one screen. Content: a one-line explanation, a "Create your first cluster" CTA, and an honest 3-step preview (`Add members → Set up the rotation → Start your first cycle`) matching the app's real page flow (`members` → `slots` → `cycles`), rendered as plain text since there's no cluster yet for these to link to. The `→` reuses the same literal glyph already established for the nav's back/forward controls, rather than introducing a new icon.
+
+**`showCta` is false on `/clusters`** — that page already has a prominent primary "New cluster" button in its header regardless of state, so a second, identical CTA directly below would be redundant clutter, not a second real option. Dashboard has no other create-cluster entry point on the page, so it keeps the CTA. The dashboard's greeting and Tip of the day card stay above this block — both still relevant to a coordinator who hasn't created a cluster yet.
+
 ## Navigation
 
 `app/site-nav.tsx` is now `bg-surface` + `shadow-sm`, wider link spacing (`gap-6`, 24px), a heavier app-title (`text-base font-semibold`, was the same weight/size as everything else), and a visible active-link indicator (`border-b-2 border-primary` under the current section, `border-b-2 border-transparent` otherwise, so the layout doesn't shift between states).

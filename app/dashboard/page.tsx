@@ -5,6 +5,7 @@ import { SiteNav } from '../site-nav'
 import { StatusBadge, type StatusTone } from '../components/status-badge'
 import { RotationRing } from '../components/rotation-ring'
 import { buttonSecondary, buttonTertiary } from '../components/button-styles'
+import { FirstRunWelcome } from '../components/first-run-welcome'
 import { getTipOfTheDay } from './tips'
 
 const clusterStatusTone: Record<string, StatusTone> = {
@@ -171,13 +172,7 @@ export default async function DashboardPage({
             Could not load clusters: {clustersError.message}
           </p>
         ) : !clusters || clusters.length === 0 ? (
-          <p className="mt-6 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
-            No clusters yet.{' '}
-            <Link href="/clusters/new" className={buttonTertiary}>
-              Create one
-            </Link>{' '}
-            to get started.
-          </p>
+          <FirstRunWelcome />
         ) : (
           <>
             <div className="mt-4 flex flex-wrap gap-2">
