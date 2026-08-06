@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { buttonPrimary } from '../../../components/button-styles'
 import type { SlotFormState } from './actions'
 
 const initialState: SlotFormState = { error: null }
@@ -25,7 +26,7 @@ export function SlotForm({
           min="1"
           step="1"
           required
-          className="w-24 rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-24 rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -36,7 +37,7 @@ export function SlotForm({
         <input
           id="label"
           name="label"
-          className="rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -45,16 +46,12 @@ export function SlotForm({
         Shared position (multiple collectors)
       </label>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className={`${buttonPrimary} px-4 py-2 text-sm`}>
         {pending ? 'Adding…' : 'Add position'}
       </button>
 
       {state.error && (
-        <p className="w-full text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p className="w-full text-sm text-danger">{state.error}</p>
       )}
     </form>
   )

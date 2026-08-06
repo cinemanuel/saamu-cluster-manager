@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../../../site-nav'
+import { buttonTertiary } from '../../../../../components/button-styles'
+import { StatusBadge } from '../../../../../components/status-badge'
 import { PendingPaymentActions, SettledPaymentActions } from './payment-actions'
 import { markPaid, waivePayment, revertToPending } from './actions'
 
@@ -71,7 +73,7 @@ export default async function CyclePaymentsPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <Link href={`/clusters/${id}/cycles`} className="text-sm underline">
+        <Link href={`/clusters/${id}/cycles`} className={`${buttonTertiary} text-sm`}>
           ← Back to {cluster.name} cycles
         </Link>
 
@@ -79,45 +81,47 @@ export default async function CyclePaymentsPage({
           {cluster.name} — Cycle {cycle.cycle_number} payments
         </h1>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-5">
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Pool</p>
-            <p className="font-medium">{pool.toFixed(2)}</p>
+            <p className="text-muted">Pool</p>
+            <p className="text-lg font-semibold">{pool.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Collected</p>
-            <p className="font-medium">{collected.toFixed(2)}</p>
+            <p className="text-muted">Collected</p>
+            <p className="text-lg font-semibold">{collected.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Outstanding</p>
-            <p className="font-medium">{outstandingCount} member{outstandingCount === 1 ? '' : 's'}</p>
+            <p className="text-muted">Outstanding</p>
+            <p className="text-lg font-semibold">{outstandingCount} member{outstandingCount === 1 ? '' : 's'}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
-            <p className="font-medium">{feeAmount === null ? 'Unavailable' : feeAmount.toFixed(2)}</p>
+            <p className="text-muted">Coordinator fee</p>
+            <p className="text-lg font-semibold">{feeAmount === null ? 'Unavailable' : feeAmount.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-zinc-600 dark:text-zinc-400">Net payout after fee</p>
-            <p className="font-medium">{netPayout === null ? 'Unavailable' : netPayout.toFixed(2)}</p>
+            <p className="text-muted">Net payout after fee</p>
+            <p className="text-lg font-semibold">{netPayout === null ? 'Unavailable' : netPayout.toFixed(2)}</p>
           </div>
         </div>
 
         {feeError && (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+          <p className="mt-2 text-sm text-danger">
             Could not calculate the coordinator fee: {feeError.message}
           </p>
         )}
 
         {members && members.length > 0 ? (
-          <table className="mt-6 w-full text-left text-sm">
+          <div className="relative mt-6">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-black/10 dark:border-white/15">
-                <th className="py-2 font-medium">Member</th>
-                <th className="py-2 font-medium">Amount</th>
-                <th className="py-2 font-medium">Due</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Paid</th>
-                <th className="py-2 font-medium">Actions</th>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-4 font-medium text-muted">Member</th>
+                <th className="py-2 pr-4 font-medium text-muted">Amount</th>
+                <th className="py-2 pr-4 font-medium text-muted">Due</th>
+                <th className="py-2 pr-4 font-medium text-muted">Status</th>
+                <th className="py-2 pr-4 font-medium text-muted">Paid</th>
+                <th className="py-2 font-medium text-muted">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -125,9 +129,9 @@ export default async function CyclePaymentsPage({
                 const payment = paymentsByMemberId.get(member.id)
                 if (!payment) {
                   return (
-                    <tr key={member.id} className="border-b border-black/5 dark:border-white/10">
-                      <td className="py-2 align-top">{member.full_name}</td>
-                      <td colSpan={5} className="py-2 align-top text-zinc-600 dark:text-zinc-400">
+                    <tr key={member.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                      <td className="py-3 pr-4 align-top">{member.full_name}</td>
+                      <td colSpan={5} className="py-3 align-top text-muted">
                         No payment record for this cycle.
                       </td>
                     </tr>
@@ -137,23 +141,25 @@ export default async function CyclePaymentsPage({
                 const isLate = payment.status === 'pending' && payment.due_date < today
 
                 return (
-                  <tr key={member.id} className="border-b border-black/5 dark:border-white/10">
-                    <td className="py-2 align-top">{fullNameByMemberId.get(member.id)}</td>
-                    <td className="py-2 align-top">{Number(payment.amount).toFixed(2)}</td>
-                    <td className="py-2 align-top">{payment.due_date}</td>
-                    <td className="py-2 align-top">
+                  <tr key={member.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-top">{fullNameByMemberId.get(member.id)}</td>
+                    <td className="py-3 pr-4 align-top">{Number(payment.amount).toFixed(2)}</td>
+                    <td className="py-3 pr-4 align-top">{payment.due_date}</td>
+                    <td className="py-3 pr-4 align-top">
                       {isLate ? (
-                        <span className="text-red-600 dark:text-red-400">Late</span>
+                        <StatusBadge tone="danger">Late</StatusBadge>
+                      ) : payment.status === 'paid' ? (
+                        <StatusBadge tone="positive">Paid</StatusBadge>
                       ) : (
-                        <span className="capitalize">{payment.status}</span>
+                        <StatusBadge tone="neutral">{payment.status}</StatusBadge>
                       )}
                     </td>
-                    <td className="py-2 align-top">
+                    <td className="py-3 pr-4 align-top">
                       {payment.status === 'paid'
                         ? `${payment.paid_at ? payment.paid_at.slice(0, 10) : '—'} (${payment.payment_method ?? '—'})`
                         : '—'}
                     </td>
-                    <td className="py-2 align-top">
+                    <td className="py-3 align-top">
                       {payment.status === 'pending' ? (
                         <PendingPaymentActions
                           markPaidAction={markPaid.bind(null, id, cycleId, payment.id)}
@@ -170,8 +176,16 @@ export default async function CyclePaymentsPage({
               })}
             </tbody>
           </table>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+          />
+          </div>
         ) : (
-          <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">No members in this cluster yet.</p>
+          <p className="mt-6 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
+            No members in this cluster yet.
+          </p>
         )}
       </div>
     </>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { buttonPrimary } from '../../../components/button-styles'
 import type { CycleFormState } from './actions'
 
 const initialState: CycleFormState = { error: null }
@@ -22,20 +23,16 @@ export function StartCycleForm({
           id="start_date"
           name="start_date"
           type="date"
-          className="rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="rounded border border-border px-3 py-2"
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className={`${buttonPrimary} px-4 py-2 text-sm`}>
         {pending ? 'Starting…' : 'Start first cycle'}
       </button>
 
       {state.error && (
-        <p className="w-full text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p className="w-full text-sm text-danger">{state.error}</p>
       )}
     </form>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { buttonPrimary } from '../components/button-styles'
 import type { ClusterFormState } from './actions'
 
 const initialState: ClusterFormState = { error: null }
@@ -24,7 +25,7 @@ export function ClusterForm({
   const [feeType, setFeeType] = useState(defaultValues?.fee_type ?? 'fixed')
 
   return (
-    <form action={formAction} className="mt-6 space-y-4">
+    <form action={formAction} className="mt-6 space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm">
       <div className="space-y-1">
         <label htmlFor="name" className="text-sm font-medium">
           Cluster name
@@ -34,7 +35,7 @@ export function ClusterForm({
           name="name"
           required
           defaultValue={defaultValues?.name}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -50,7 +51,7 @@ export function ClusterForm({
           min="0.01"
           required
           defaultValue={defaultValues?.contribution_amount}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         />
       </div>
 
@@ -64,7 +65,7 @@ export function ClusterForm({
           required
           value={feeType}
           onChange={(e) => setFeeType(e.target.value)}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         >
           <option value="fixed">Fixed amount</option>
           <option value="percentage">Percentage</option>
@@ -86,7 +87,7 @@ export function ClusterForm({
             max={feeType === 'percentage' ? 100 : undefined}
             required
             defaultValue={defaultValues?.fee_value ?? undefined}
-            className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+            className="w-full rounded border border-border px-3 py-2"
           />
         </div>
       )}
@@ -100,7 +101,7 @@ export function ClusterForm({
           name="frequency"
           required
           defaultValue={defaultValues?.frequency ?? 'monthly'}
-          className="w-full rounded border border-black/15 px-3 py-2 dark:border-white/20 dark:bg-transparent"
+          className="w-full rounded border border-border px-3 py-2"
         >
           <option value="weekly">Weekly</option>
           <option value="biweekly">Biweekly</option>
@@ -108,13 +109,9 @@ export function ClusterForm({
         </select>
       </div>
 
-      {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
-      >
+      <button type="submit" disabled={pending} className={`${buttonPrimary} w-full px-4 py-2`}>
         {pending ? 'Saving…' : submitLabel}
       </button>
     </form>

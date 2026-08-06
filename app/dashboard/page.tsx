@@ -2,6 +2,18 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { SiteNav } from '../site-nav'
+import { StatusBadge, type StatusTone } from '../components/status-badge'
+import { RotationRing } from '../components/rotation-ring'
+import { buttonSecondary, buttonTertiary } from '../components/button-styles'
+import { FirstRunWelcome } from '../components/first-run-welcome'
+import { getTipOfTheDay } from './tips'
+
+const clusterStatusTone: Record<string, StatusTone> = {
+  draft: 'neutral',
+  active: 'active',
+  completed: 'positive',
+  archived: 'neutral',
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -11,6 +23,14 @@ export default async function DashboardPage({
   const { cluster: requestedClusterId } = await searchParams
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  // user_metadata.full_name depends on how the account was provisioned and
+  // isn't guaranteed to be set -- email is the one field every authenticated
+  // session actually has, so it's the real fallback, not a placeholder.
+  const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? null
 
   const [isSuperAdminResult, clustersResult] = await Promise.all([
     supabase.rpc('is_super_admin'),
@@ -52,19 +72,24 @@ export default async function DashboardPage({
   let feeError: { message: string } | null = null
   let activeCycle: (typeof cycles)[number] | null = null
   let totalPot = 0
+  let totalPositions = 0
+  let slotsError: { message: string } | null = null
 
   if (selectedCluster) {
-    const [cyclesResult, membersResult] = await Promise.all([
+    const [cyclesResult, membersResult, slotsResult] = await Promise.all([
       supabase
         .from('cycles')
         .select('id, cycle_number, slot_id, status, start_date, end_date')
         .eq('cluster_id', selectedCluster.id)
         .order('cycle_number', { ascending: true }),
       supabase.from('members').select('id, full_name').eq('cluster_id', selectedCluster.id),
+      supabase.from('slots').select('id').eq('cluster_id', selectedCluster.id),
     ])
     cycles = cyclesResult.data ?? []
     cyclesError = cyclesResult.error
     members = membersResult.data ?? []
+    totalPositions = (slotsResult.data ?? []).length
+    slotsError = slotsResult.error
 
     activeCycle = cycles.find((cycle) => cycle.status === 'active') ?? null
     totalPot = members.length * Number(selectedCluster.contribution_amount)
@@ -100,6 +125,7 @@ export default async function DashboardPage({
   }
 
   const lastCycle = cycles.length > 0 ? cycles[cycles.length - 1] : null
+  const completedCount = cycles.filter((cycle) => cycle.status === 'completed').length
   const fullNameByMemberId = new Map(members.map((member) => [member.id, member.full_name]))
   const collectorNames = slotMembers
     .map((sm) => fullNameByMemberId.get(sm.member_id))
@@ -127,25 +153,26 @@ export default async function DashboardPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+        <h1 className="text-xl font-semibold">
+          {displayName ? `Welcome back, ${displayName}.` : 'Welcome back.'}
+        </h1>
         {isSuperAdmin && (
-          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 text-xs text-muted">
             Viewing as super-admin — read-only across all coordinators.
           </p>
         )}
 
+        <div className="mt-4 rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <p className="text-sm font-medium text-muted">Tip of the day</p>
+          <p className="mt-1 text-sm">{getTipOfTheDay()}</p>
+        </div>
+
         {clustersError ? (
-          <p className="mt-6 text-sm text-red-600 dark:text-red-400">
+          <p className="mt-6 text-sm text-danger">
             Could not load clusters: {clustersError.message}
           </p>
         ) : !clusters || clusters.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
-            No clusters yet.{' '}
-            <Link href="/clusters/new" className="underline">
-              Create one
-            </Link>{' '}
-            to get started.
-          </p>
+          <FirstRunWelcome />
         ) : (
           <>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -153,10 +180,10 @@ export default async function DashboardPage({
                 <Link
                   key={cluster.id}
                   href={`/dashboard?cluster=${cluster.id}`}
-                  className={`rounded-full border px-3 py-1 text-sm ${
+                  className={`rounded-full border px-3 py-1 text-sm transition-colors ${
                     cluster.id === selectedCluster?.id
-                      ? 'border-foreground bg-foreground text-background'
-                      : 'border-black/15 dark:border-white/20'
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-border bg-surface hover:border-primary hover:text-primary'
                   }`}
                 >
                   {cluster.name}
@@ -166,22 +193,22 @@ export default async function DashboardPage({
             </div>
 
             {!selectedCluster ? (
-              <p className="mt-6 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-6 text-sm text-danger">
                 Cluster not found, or you don&apos;t have access to it.
               </p>
             ) : (
               <>
-                <div className="mt-4 flex flex-wrap gap-3 text-sm">
-                  <Link href={`/clusters/${selectedCluster.id}/members`} className="underline">
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+                  <Link href={`/clusters/${selectedCluster.id}/members`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Members
                   </Link>
-                  <Link href={`/clusters/${selectedCluster.id}/slots`} className="underline">
+                  <Link href={`/clusters/${selectedCluster.id}/slots`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Rotation
                   </Link>
-                  <Link href={`/clusters/${selectedCluster.id}/cycles`} className="underline">
+                  <Link href={`/clusters/${selectedCluster.id}/cycles`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Cycles
                   </Link>
-                  <Link href={`/clusters/${selectedCluster.id}/payouts`} className="underline">
+                  <Link href={`/clusters/${selectedCluster.id}/payouts`} className={`${buttonSecondary} px-3 py-2 text-sm`}>
                     Payouts
                   </Link>
                   {/* Other cluster pages (list, cycles, payments) don't yet hide their
@@ -189,28 +216,32 @@ export default async function DashboardPage({
                       the button still renders and would error if clicked. Only this
                       dashboard hides them so far; see BUILD_LOG Entry 9 fast-follow. */}
                   {!isSuperAdmin && !isSuperAdminUnknown && (
-                    <Link href={`/clusters/${selectedCluster.id}/edit`} className="underline">
+                    <Link href={`/clusters/${selectedCluster.id}/edit`} className={buttonTertiary}>
                       Edit
                     </Link>
                   )}
                 </div>
 
                 <div className="mt-6">
-                  <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                  <h2 className="text-sm font-medium text-muted">
                     Cluster status
                   </h2>
                   {cyclesError ? (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-2 text-sm text-danger">
                       Could not load cluster status: {cyclesError.message}
                     </p>
                   ) : (
-                    <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-3">
+                    <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Status</p>
-                        <p className="font-medium capitalize">{selectedCluster.status}</p>
+                        <p className="text-muted">Status</p>
+                        <p className="mt-1">
+                          <StatusBadge tone={clusterStatusTone[selectedCluster.status] ?? 'neutral'}>
+                            {selectedCluster.status}
+                          </StatusBadge>
+                        </p>
                       </div>
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Current cycle</p>
+                        <p className="text-muted">Current cycle</p>
                         <p className="font-medium">
                           {activeCycle
                             ? `Cycle ${activeCycle.cycle_number}`
@@ -220,7 +251,7 @@ export default async function DashboardPage({
                         </p>
                       </div>
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Start date</p>
+                        <p className="text-muted">Start date</p>
                         <p className="font-medium">
                           {activeCycle
                             ? activeCycle.start_date
@@ -229,44 +260,79 @@ export default async function DashboardPage({
                               : '—'}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-muted">Rotation</p>
+                        {slotsError ? (
+                          <p className="text-sm text-danger">Unavailable</p>
+                        ) : totalPositions > 0 ? (
+                          (() => {
+                            // Same clamp as the clusters list: coordinators
+                            // have direct RLS write access to cycles with no
+                            // cycle_number CHECK constraint, so a row outside
+                            // what this cluster's slots support is reachable
+                            // via a direct write, not just this app's UI.
+                            const rawActivePosition = activeCycle?.cycle_number ?? null
+                            const boundedActivePosition =
+                              rawActivePosition !== null && rawActivePosition >= 1 && rawActivePosition <= totalPositions
+                                ? rawActivePosition
+                                : null
+                            const boundedCompletedCount = Math.min(completedCount, totalPositions)
+                            return (
+                              <RotationRing
+                                totalPositions={totalPositions}
+                                activePosition={boundedActivePosition}
+                                completedCount={boundedCompletedCount}
+                                size={64}
+                                ariaLabel={`${selectedCluster.name}: ${
+                                  boundedActivePosition
+                                    ? `position ${boundedActivePosition} of ${totalPositions} active`
+                                    : `${boundedCompletedCount} of ${totalPositions} positions complete`
+                                }`}
+                              />
+                            )
+                          })()
+                        ) : (
+                          <p className="font-medium">—</p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
 
                 <div className="mt-6">
-                  <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                  <h2 className="text-sm font-medium text-muted">
                     Payment status (active cycle)
                   </h2>
                   {cyclesError ? (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-2 text-sm text-danger">
                       Could not load payment status: {cyclesError.message}
                     </p>
                   ) : !activeCycle ? (
-                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="mt-2 text-sm text-muted">
                       No active cycle — nothing to collect right now.
                     </p>
                   ) : paymentsError ? (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-2 text-sm text-danger">
                       Could not load payment status: {paymentsError.message}
                     </p>
                   ) : (
-                    <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-4">
+                    <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Paid</p>
-                        <p className="font-medium">{paidCount}</p>
+                        <p className="text-muted">Paid</p>
+                        <p className="text-lg font-semibold text-primary">{paidCount}</p>
                       </div>
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Pending</p>
-                        <p className="font-medium">{pendingCount}</p>
+                        <p className="text-muted">Pending</p>
+                        <p className="text-lg font-semibold">{pendingCount}</p>
                       </div>
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Late</p>
-                        <p className="font-medium">{lateCount}</p>
+                        <p className="text-muted">Late</p>
+                        <p className="text-lg font-semibold text-danger">{lateCount}</p>
                       </div>
                       {waivedCount > 0 && (
                         <div>
-                          <p className="text-zinc-600 dark:text-zinc-400">Waived</p>
-                          <p className="font-medium">{waivedCount}</p>
+                          <p className="text-muted">Waived</p>
+                          <p className="text-lg font-semibold">{waivedCount}</p>
                         </div>
                       )}
                     </div>
@@ -274,52 +340,52 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="mt-6">
-                  <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                  <h2 className="text-sm font-medium text-muted">
                     Upcoming payout
                   </h2>
                   {cyclesError ? (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-2 text-sm text-danger">
                       Could not load the upcoming payout: {cyclesError.message}
                     </p>
                   ) : !activeCycle ? (
-                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="mt-2 text-sm text-muted">
                       No active cycle — no upcoming payout.
                     </p>
                   ) : feeError || slotMembersError ? (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-2 text-sm text-danger">
                       Could not load the upcoming payout: {(feeError ?? slotMembersError)?.message}
                     </p>
                   ) : (
                     <>
-                      <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-4">
+                      <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                         <div>
-                          <p className="text-zinc-600 dark:text-zinc-400">Next collector</p>
+                          <p className="text-muted">Next collector</p>
                           <p className="font-medium">
                             {collectorNames.length > 0 ? collectorNames.join(', ') : 'Unassigned'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-zinc-600 dark:text-zinc-400">Total pot</p>
-                          <p className="font-medium">{totalPot.toFixed(2)}</p>
+                          <p className="text-muted">Total pot</p>
+                          <p className="text-lg font-semibold">{totalPot.toFixed(2)}</p>
                         </div>
                         <div>
-                          <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
-                          <p className="font-medium">{(feeAmountData ?? 0).toFixed(2)}</p>
+                          <p className="text-muted">Coordinator fee</p>
+                          <p className="text-lg font-semibold">{(feeAmountData ?? 0).toFixed(2)}</p>
                         </div>
                         <div>
-                          <p className="text-zinc-600 dark:text-zinc-400">Net payout</p>
-                          <p className="font-medium">{(netPayout ?? 0).toFixed(2)}</p>
+                          <p className="text-muted">Net payout</p>
+                          <p className="text-lg font-semibold">{(netPayout ?? 0).toFixed(2)}</p>
                         </div>
                       </div>
                       {feeExceedsPot && (
-                        <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                        <p className="mt-2 text-sm text-danger">
                           Coordinator fee ({(feeAmountData ?? 0).toFixed(2)}) exceeds the total pot (
                           {totalPot.toFixed(2)}) — this cycle cannot be completed until the fee or
                           contribution amount changes.
                         </p>
                       )}
                       {slotMembers.length !== 1 && (
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="mt-2 text-sm text-muted">
                           This position currently has {slotMembers.length} collector
                           {slotMembers.length === 1 ? '' : 's'} — a payout won&apos;t be automatically
                           recorded when this cycle completes (shared-slot payouts aren&apos;t supported
@@ -331,28 +397,28 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="mt-6">
-                  <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                  <h2 className="text-sm font-medium text-muted">
                     Lifetime totals
                   </h2>
                   {cyclesError ? (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-2 text-sm text-danger">
                       Could not load lifetime totals: {cyclesError.message}
                     </p>
                   ) : payoutsError ? (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                    <p className="mt-2 text-sm text-danger">
                       Could not load lifetime totals: {payoutsError.message}
                     </p>
                   ) : (
-                    <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20">
+                    <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm">
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Total coordinator earnings</p>
-                        <p className="font-medium">
+                        <p className="text-muted">Total coordinator earnings</p>
+                        <p className="text-lg font-semibold">
                           {payoutsTotalFees === null ? 'Unavailable' : payoutsTotalFees.toFixed(2)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-zinc-600 dark:text-zinc-400">Total fees collected</p>
-                        <p className="font-medium">
+                        <p className="text-muted">Total fees collected</p>
+                        <p className="text-lg font-semibold">
                           {payoutsTotalFees === null ? 'Unavailable' : payoutsTotalFees.toFixed(2)}
                         </p>
                       </div>

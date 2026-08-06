@@ -3,9 +3,17 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
+import { StatusBadge, type StatusTone } from '../../../components/status-badge'
+import { buttonTertiary } from '../../../components/button-styles'
 import { StartCycleForm } from './start-cycle-form'
 import { AdvanceCycleForm } from './advance-cycle-form'
 import { startFirstCycle, advanceCycle } from './actions'
+
+const cycleStatusTone: Record<string, StatusTone> = {
+  pending: 'neutral',
+  active: 'active',
+  completed: 'positive',
+}
 
 export default async function CyclesPage({
   params,
@@ -81,7 +89,7 @@ export default async function CyclesPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <Link href={`/clusters/${id}/slots`} className="text-sm underline">
+        <Link href={`/clusters/${id}/slots`} className={`${buttonTertiary} text-sm`}>
           ← Back to {cluster.name} rotation positions
         </Link>
 
@@ -93,15 +101,15 @@ export default async function CyclesPage({
         </div>
 
         {warning && (
-          <p className="mt-4 rounded bg-black/10 px-4 py-3 text-sm dark:bg-white/10">{warning}</p>
+          <p className="mt-4 rounded bg-border px-4 py-3 text-sm text-ink">{warning}</p>
         )}
 
         {rotationComplete ? (
-          <p className="mt-6 rounded bg-black/10 px-4 py-3 text-sm font-medium dark:bg-white/10">
+          <p className="mt-6 rounded bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
             Rotation complete — all positions have collected.
           </p>
         ) : activeCycle ? (
-          <div className="mt-6 rounded border border-black/15 p-4 dark:border-white/20">
+          <div className="mt-6 rounded-xl border border-border bg-surface p-6 shadow-sm">
             {(() => {
               const slot = slotById.get(activeCycle.slot_id)
               const collectors = collectorNamesBySlotId.get(activeCycle.slot_id) ?? []
@@ -112,7 +120,7 @@ export default async function CyclesPage({
                     {slot?.position ?? '—'}
                     {slot?.label ? ` (${slot.label})` : ''}
                   </p>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-1 text-sm text-muted">
                     Collector{collectors.length > 1 ? 's' : ''}:{' '}
                     {collectors.length > 0 ? collectors.join(', ') : 'Unassigned'}
                   </p>
@@ -120,7 +128,7 @@ export default async function CyclesPage({
               )
             })()}
             {(outstandingByCycleId.get(activeCycle.id) ?? 0) > 0 && (
-              <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-3 text-sm text-danger">
                 {`${outstandingByCycleId.get(activeCycle.id)} member${
                   outstandingByCycleId.get(activeCycle.id) === 1 ? '' : 's'
                 } still owe for this cycle.`}
@@ -133,16 +141,18 @@ export default async function CyclesPage({
         )}
 
         {cycles && cycles.length > 0 ? (
-          <table className="mt-8 w-full text-left text-sm">
+          <div className="relative mt-8">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-black/10 dark:border-white/15">
-                <th className="py-2 font-medium">Cycle</th>
-                <th className="py-2 font-medium">Position</th>
-                <th className="py-2 font-medium">Collector(s)</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Start</th>
-                <th className="py-2 font-medium">End</th>
-                <th className="py-2 font-medium">Payments</th>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-4 font-medium text-muted">Cycle</th>
+                <th className="py-2 pr-4 font-medium text-muted">Position</th>
+                <th className="py-2 pr-4 font-medium text-muted">Collector(s)</th>
+                <th className="py-2 pr-4 font-medium text-muted">Status</th>
+                <th className="py-2 pr-4 font-medium text-muted">Start</th>
+                <th className="py-2 pr-4 font-medium text-muted">End</th>
+                <th className="py-2 pr-4 font-medium text-muted">Payments</th>
               </tr>
             </thead>
             <tbody>
@@ -150,18 +160,22 @@ export default async function CyclesPage({
                 const slot = slotById.get(cycle.slot_id)
                 const collectors = collectorNamesBySlotId.get(cycle.slot_id) ?? []
                 return (
-                  <tr key={cycle.id} className="border-b border-black/5 dark:border-white/10">
-                    <td className="py-2">{cycle.cycle_number}</td>
-                    <td className="py-2">
+                  <tr key={cycle.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-middle">{cycle.cycle_number}</td>
+                    <td className="py-3 pr-4 align-middle">
                       {slot?.position ?? '—'}
                       {slot?.label ? ` (${slot.label})` : ''}
                     </td>
-                    <td className="py-2">{collectors.length > 0 ? collectors.join(', ') : '—'}</td>
-                    <td className="py-2 capitalize">{cycle.status}</td>
-                    <td className="py-2">{cycle.start_date}</td>
-                    <td className="py-2">{cycle.end_date ?? '—'}</td>
-                    <td className="py-2">
-                      <Link href={`/clusters/${id}/cycles/${cycle.id}/payments`} className="underline">
+                    <td className="py-3 pr-4 align-middle">{collectors.length > 0 ? collectors.join(', ') : '—'}</td>
+                    <td className="py-3 pr-4 align-middle">
+                      <StatusBadge tone={cycleStatusTone[cycle.status] ?? 'neutral'}>
+                        {cycle.status}
+                      </StatusBadge>
+                    </td>
+                    <td className="py-3 pr-4 align-middle">{cycle.start_date}</td>
+                    <td className="py-3 pr-4 align-middle">{cycle.end_date ?? '—'}</td>
+                    <td className="py-3 align-middle">
+                      <Link href={`/clusters/${id}/cycles/${cycle.id}/payments`} className={buttonTertiary}>
                         View payments
                       </Link>
                     </td>
@@ -170,8 +184,16 @@ export default async function CyclesPage({
               })}
             </tbody>
           </table>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+          />
+          </div>
         ) : (
-          <p className="mt-8 text-sm text-zinc-600 dark:text-zinc-400">No cycles yet.</p>
+          <p className="mt-8 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
+            No cycles yet.
+          </p>
         )}
       </div>
     </>

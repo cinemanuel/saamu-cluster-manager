@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { SiteNav } from '../../../site-nav'
+import { buttonTertiary } from '../../../components/button-styles'
 
 export default async function ClusterPayoutsPage({
   params,
@@ -106,7 +107,7 @@ export default async function ClusterPayoutsPage({
     <>
       <SiteNav />
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <Link href={`/clusters/${id}/cycles`} className="text-sm underline">
+        <Link href={`/clusters/${id}/cycles`} className={`${buttonTertiary} text-sm`}>
           ← Back to {cluster.name} cycles
         </Link>
 
@@ -114,33 +115,33 @@ export default async function ClusterPayoutsPage({
 
         {activeCycle && (
           <div className="mt-6">
-            <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Upcoming payout</h2>
+            <h2 className="text-sm font-medium text-muted">Upcoming payout</h2>
             {upcomingError ? (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+              <p className="mt-2 text-sm text-danger">
                 Could not load the upcoming payout: {upcomingError}
               </p>
             ) : upcoming ? (
               <>
-                <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20 sm:grid-cols-4">
+                <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm sm:grid-cols-4">
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Total pot</p>
-                    <p className="font-medium">{upcoming.totalPot.toFixed(2)}</p>
+                    <p className="text-muted">Total pot</p>
+                    <p className="text-lg font-semibold">{upcoming.totalPot.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Coordinator fee</p>
-                    <p className="font-medium">{upcoming.feeAmount.toFixed(2)}</p>
+                    <p className="text-muted">Coordinator fee</p>
+                    <p className="text-lg font-semibold">{upcoming.feeAmount.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Net payout</p>
-                    <p className="font-medium">{upcoming.netPayout.toFixed(2)}</p>
+                    <p className="text-muted">Net payout</p>
+                    <p className="text-lg font-semibold">{upcoming.netPayout.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Contribution frequency</p>
+                    <p className="text-muted">Contribution frequency</p>
                     <p className="font-medium capitalize">{cluster.frequency}</p>
                   </div>
                 </div>
                 {upcoming.collectorCount !== 1 && (
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-2 text-sm text-muted">
                     This position currently has {upcoming.collectorCount} collector
                     {upcoming.collectorCount === 1 ? '' : 's'} — a payout won&apos;t be automatically
                     recorded when this cycle completes (shared-slot payouts aren&apos;t supported yet).
@@ -152,22 +153,22 @@ export default async function ClusterPayoutsPage({
         )}
 
         <div className="mt-6">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Lifetime totals</h2>
+          <h2 className="text-sm font-medium text-muted">Lifetime totals</h2>
           {payoutsError && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            <p className="mt-2 text-sm text-danger">
               Could not load lifetime totals: {payoutsError.message}
             </p>
           )}
-          <div className="mt-2 grid grid-cols-2 gap-4 rounded border border-black/15 p-4 text-sm dark:border-white/20">
+          <div className="mt-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6 text-sm shadow-sm">
             <div>
-              <p className="text-zinc-600 dark:text-zinc-400">Total coordinator earnings</p>
-              <p className="font-medium">
+              <p className="text-muted">Total coordinator earnings</p>
+              <p className="text-lg font-semibold">
                 {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
               </p>
             </div>
             <div>
-              <p className="text-zinc-600 dark:text-zinc-400">Total fees collected</p>
-              <p className="font-medium">
+              <p className="text-muted">Total fees collected</p>
+              <p className="text-lg font-semibold">
                 {totalFeesCollected === null ? 'Unavailable' : totalFeesCollected.toFixed(2)}
               </p>
             </div>
@@ -175,43 +176,53 @@ export default async function ClusterPayoutsPage({
         </div>
 
         <div className="mt-6">
-          <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Payout history</h2>
+          <h2 className="text-sm font-medium text-muted">Payout history</h2>
           {transactionsError && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            <p className="mt-2 text-sm text-danger">
               Recipient names could not be loaded: {transactionsError.message}
             </p>
           )}
           {payoutsError ? (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+            <p className="mt-2 text-sm text-danger">
               Could not load payout history: {payoutsError.message}
             </p>
           ) : payouts && payouts.length > 0 ? (
-            <table className="mt-2 w-full text-left text-sm">
+            <div className="relative mt-2">
+            <div className="overflow-x-auto rounded-xl border border-border bg-surface p-2 shadow-sm">
+            <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-black/10 dark:border-white/15">
-                  <th className="py-2 font-medium">Cycle</th>
-                  <th className="py-2 font-medium">Payout date</th>
-                  <th className="py-2 font-medium">Total pot</th>
-                  <th className="py-2 font-medium">Coordinator fee</th>
-                  <th className="py-2 font-medium">Net payout</th>
-                  <th className="py-2 font-medium">Recipient</th>
+                <tr className="border-b border-border">
+                  <th className="py-2 pr-4 font-medium text-muted">Cycle</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Payout date</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Total pot</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Coordinator fee</th>
+                  <th className="py-2 pr-4 font-medium text-muted">Net payout</th>
+                  <th className="py-2 font-medium text-muted">Recipient</th>
                 </tr>
               </thead>
               <tbody>
                 {payouts.map((payout) => (
-                  <tr key={payout.id} className="border-b border-black/5 dark:border-white/10">
-                    <td className="py-2">{cycleById.get(payout.cycle_id)?.cycle_number ?? '—'}</td>
-                    <td className="py-2">{payout.payout_date}</td>
-                    <td className="py-2">{Number(payout.total_pot).toFixed(2)}</td>
-                    <td className="py-2">{Number(payout.fee_amount).toFixed(2)}</td>
-                    <td className="py-2">{Number(payout.net_payout).toFixed(2)}</td>
-                    <td className="py-2">{recipientByPayoutId.get(payout.id) ?? '—'}</td>
+                  <tr key={payout.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-bg">
+                    <td className="py-3 pr-4 align-middle">{cycleById.get(payout.cycle_id)?.cycle_number ?? '—'}</td>
+                    <td className="py-3 pr-4 align-middle">{payout.payout_date}</td>
+                    <td className="py-3 pr-4 align-middle">{Number(payout.total_pot).toFixed(2)}</td>
+                    <td className="py-3 pr-4 align-middle">{Number(payout.fee_amount).toFixed(2)}</td>
+                    <td className="py-3 pr-4 align-middle">{Number(payout.net_payout).toFixed(2)}</td>
+                    <td className="py-3 align-middle">{recipientByPayoutId.get(payout.id) ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-surface to-transparent sm:hidden"
+            />
+            </div>
           ) : (
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">No payouts recorded yet.</p>
+            <p className="mt-2 rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted shadow-sm">
+              No payouts recorded yet.
+            </p>
           )}
         </div>
       </div>
