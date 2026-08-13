@@ -20,12 +20,28 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # -f: fail (non-zero exit) on a non-2xx response, so a broken or
-          # expired key surfaces as a visibly failed Actions run instead of
-          # silently doing nothing. select=id&limit=1 keeps the request and
-          # response trivially small -- this is read-only and can't modify
-          # data regardless of what RLS returns for the anon key.
-          curl -sf "$SUPABASE_URL/rest/v1/clusters?select=id&limit=1" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            -o /dev/null
+          # Hits PostgREST's root path, not a table -- it returns the API's
+          # own OpenAPI/schema document and only needs a valid apikey, so it
+          # can't fail because of a table's RLS policies or grants (a table
+          # query, e.g. /rest/v1/clusters, previously failed here because
+          # anon has no SELECT grant on clusters -- clusters' RLS requires
+          # is_admin(), which is never true for an unauthenticated request;
+          # granting anon real access to app data just for a heartbeat isn't
+          # worth it, so this avoids depending on table permissions at all).
+          # Read-only either way: a GET can't modify data.
+          #
+          # Capture status and body separately (rather than curl -f) so a
+          # failure prints what actually went wrong in the Actions log,
+          # instead of just a bare exit code.
+          response=$(curl -s -w "\n%{http_code}" "$SUPABASE_URL/rest/v1/" \
+            -H "apikey: $SUPABASE_ANON_KEY")
+          status="${response##*$'\n'}"
+          body="${response%$'\n'*}"
+
+          echo "HTTP status: $status"
+
+          if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
+            echo "Unexpected response body:"
+            echo "$body"
+            exit 1
+          fi
