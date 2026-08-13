@@ -4,7 +4,7 @@ name: Supabase keep-alive
 # activity. This sends a minimal, read-only request every 3 days -- well
 # inside that window -- so the project never sits idle long enough to
 # trigger it. No paid services, no third-party actions: just curl against
-# Supabase's own REST API (PostgREST), which every runner already has.
+# Supabase's Auth health endpoint, which every runner already has.
 
 on:
   schedule:
@@ -15,25 +15,28 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping Supabase Auth health endpoint
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # Hits PostgREST's root path, not a table -- it returns the API's
-          # own OpenAPI/schema document and only needs a valid apikey, so it
-          # can't fail because of a table's RLS policies or grants (a table
-          # query, e.g. /rest/v1/clusters, previously failed here because
-          # anon has no SELECT grant on clusters -- clusters' RLS requires
-          # is_admin(), which is never true for an unauthenticated request;
+          # PostgREST's own root path (/rest/v1/) turned out to be locked to
+          # service_role only ("401 Invalid API key" for anon) -- not the
+          # generic public root it looks like. A table query has the same
+          # problem from the other direction: /rest/v1/clusters failed
+          # because anon has no SELECT grant on clusters, whose RLS requires
+          # is_admin() (never true for an unauthenticated request), and
           # granting anon real access to app data just for a heartbeat isn't
-          # worth it, so this avoids depending on table permissions at all).
-          # Read-only either way: a GET can't modify data.
+          # worth it either way.
+          #
+          # /auth/v1/health is Supabase's documented endpoint for exactly
+          # this purpose: no table grants, no RLS, no service_role --  just
+          # the anon key's apikey header. Still strictly read-only.
           #
           # Capture status and body separately (rather than curl -f) so a
           # failure prints what actually went wrong in the Actions log,
           # instead of just a bare exit code.
-          response=$(curl -s -w "\n%{http_code}" "$SUPABASE_URL/rest/v1/" \
+          response=$(curl -s -w "\n%{http_code}" "$SUPABASE_URL/auth/v1/health" \
             -H "apikey: $SUPABASE_ANON_KEY")
           status="${response##*$'\n'}"
           body="${response%$'\n'*}"
