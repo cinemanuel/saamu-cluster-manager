@@ -1,0 +1,31 @@
+name: Supabase keep-alive
+
+# Supabase's free tier auto-pauses a project after 7 days with no API
+# activity. This sends a minimal, read-only request every 3 days -- well
+# inside that window -- so the project never sits idle long enough to
+# trigger it. No paid services, no third-party actions: just curl against
+# Supabase's own REST API (PostgREST), which every runner already has.
+
+on:
+  schedule:
+    - cron: '0 6 */3 * *' # Every 3 days at 06:00 UTC
+  workflow_dispatch: {} # Allows a manual run from the Actions tab, e.g. to verify setup
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # -f: fail (non-zero exit) on a non-2xx response, so a broken or
+          # expired key surfaces as a visibly failed Actions run instead of
+          # silently doing nothing. select=id&limit=1 keeps the request and
+          # response trivially small -- this is read-only and can't modify
+          # data regardless of what RLS returns for the anon key.
+          curl -sf "$SUPABASE_URL/rest/v1/clusters?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -o /dev/null
