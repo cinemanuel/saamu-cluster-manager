@@ -15,28 +15,22 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase Auth health endpoint
+      - name: Ping Supabase heartbeat table
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # PostgREST's own root path (/rest/v1/) turned out to be locked to
-          # service_role only ("401 Invalid API key" for anon) -- not the
-          # generic public root it looks like. A table query has the same
-          # problem from the other direction: /rest/v1/clusters failed
-          # because anon has no SELECT grant on clusters, whose RLS requires
-          # is_admin() (never true for an unauthenticated request), and
-          # granting anon real access to app data just for a heartbeat isn't
-          # worth it either way.
-          #
-          # /auth/v1/health is Supabase's documented endpoint for exactly
-          # this purpose: no table grants, no RLS, no service_role --  just
-          # the anon key's apikey header. Still strictly read-only.
+          # The Auth health endpoint (/auth/v1/health) doesn't count as real
+          # database activity for Supabase's pause detector, so it didn't
+          # actually keep the project alive. Querying a dedicated
+          # system_heartbeat table instead -- created specifically for this
+          # purpose, readable by anon via RLS -- since that's real database
+          # activity. Still strictly read-only.
           #
           # Capture status and body separately (rather than curl -f) so a
           # failure prints what actually went wrong in the Actions log,
           # instead of just a bare exit code.
-          response=$(curl -s -w "\n%{http_code}" "$SUPABASE_URL/auth/v1/health" \
+          response=$(curl -s -w "\n%{http_code}" "$SUPABASE_URL/rest/v1/system_heartbeat?select=id&limit=1" \
             -H "apikey: $SUPABASE_ANON_KEY")
           status="${response##*$'\n'}"
           body="${response%$'\n'*}"
