@@ -251,3 +251,19 @@ Worth keeping CodeRabbit as a standing second pass on future RLS/auth changes.
 **Also found during the same testing session (unvalidated rotation position data):** See [docs/bug-logs/saamu-position-typo-bug-log.md](./docs/bug-logs/saamu-position-typo-bug-log.md) for details.
 
 **Confirmed live (super-admin write attempt hits a raw RLS error, not a hidden button):** See [docs/bug-logs/saamu-super-admin-write-attempt-bug-log.md](./docs/bug-logs/saamu-super-admin-write-attempt-bug-log.md) for details.
+
+---
+
+## Entry 11: Supabase keep-alive workflow fix
+
+**Status:** Fixed and merged (PR #20)
+
+**What happened:** The GitHub Actions keep-alive workflow (added to prevent the Supabase free-tier project from auto-pausing after 7 days of inactivity) ran successfully on every scheduled run, always green — but the project paused anyway. Root cause, in two parts: (1) the ping hit `/auth/v1/health`, which returns `200` without touching Postgres and doesn't count as "database activity" for Supabase's pause detector; (2) switching to a real table read exposed a second gap once a dedicated `system_heartbeat` table was created — an RLS policy granting `anon` `SELECT` isn't sufficient on its own, Postgres also requires an explicit table-level `GRANT`, which had been missed initially.
+
+**Fix:** Created `system_heartbeat` (`supabase/migrations/20260813000000_add_system_heartbeat.sql`) — a single-row table (`id smallint primary key default 1`, enforcing the one-row constraint by construction) holding no app data, readable by `anon` via both an RLS policy and the required table-level grant. Updated `.github/workflows/supabase-keepalive.yml` to ping it (`GET /rest/v1/system_heartbeat?select=id&limit=1`) instead of the Auth health endpoint.
+
+**Verification:** Manually triggered the workflow against the PR branch and confirmed `HTTP status: 200` in the Action log before merging — not just a green checkmark, since the whole incident began with a green checkmark that meant nothing.
+
+**Case study:** full investigation timeline, including the two dead ends tried before landing on the dedicated-table approach (PostgREST's root path is locked to `service_role`; the real `clusters` table is correctly blocked by RLS) — see [docs/case-studies/saamu-keepalive-false-positive-case-study.md](./docs/case-studies/saamu-keepalive-false-positive-case-study.md).
+
+**Note on entry numbering:** Entry 10 (the visual design pass, PR #16) was never formally written up in this log, despite being referenced as "Entry 10" in `DESIGN_SYSTEM.md`. This entry is numbered 11 to avoid colliding with that already-claimed number rather than papering over the gap — Entry 10 is still owed a proper write-up.
