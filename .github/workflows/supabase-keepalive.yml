@@ -1,37 +1,46 @@
 name: Supabase keep-alive
 
 # Supabase's free tier auto-pauses a project after 7 days with no API
-# activity. This sends a minimal, read-only request every 3 days -- well
-# inside that window -- so the project never sits idle long enough to
-# trigger it. No paid services, no third-party actions: just curl against
-# Supabase's Auth health endpoint, which every runner already has.
+# activity. This writes to a dedicated heartbeat row daily -- both changed
+# from the original version, which pinged with a read-only SELECT every 3
+# days. That version stayed green on every scheduled run and still didn't
+# prevent the pause: last_pinged_at sat frozen at its original seed value
+# for two weeks, because reads don't reliably register as activity for
+# Supabase's pause detector the way a write does. Daily is extra safety
+# margin now that a failure means more than "one skipped read." No paid
+# services, no third-party actions: just curl, which every runner already
+# has.
 
 on:
   schedule:
-    - cron: '0 6 */3 * *' # Every 3 days at 06:00 UTC
+    - cron: '0 6 * * *' # Daily at 06:00 UTC
   workflow_dispatch: {} # Allows a manual run from the Actions tab, e.g. to verify setup
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase heartbeat table
+      - name: Update Supabase heartbeat table
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # The Auth health endpoint (/auth/v1/health) doesn't count as real
-          # database activity for Supabase's pause detector, so it didn't
-          # actually keep the project alive. Querying a dedicated
-          # system_heartbeat table instead -- created specifically for this
-          # purpose, readable by anon via RLS -- since that's real database
-          # activity. Still strictly read-only.
+          # A SELECT against system_heartbeat (the previous version of this
+          # step) kept the Action green but didn't actually keep the project
+          # alive -- last_pinged_at proved reads weren't registering as real
+          # database activity. Switched to a PATCH/UPDATE, writing the
+          # current timestamp to the same row, which is unambiguously real
+          # activity. Still can't touch anything but this one heartbeat row.
           #
           # Capture status and body separately (rather than curl -f) so a
           # failure prints what actually went wrong in the Actions log,
           # instead of just a bare exit code.
-          response=$(curl -s -w "\n%{http_code}" "$SUPABASE_URL/rest/v1/system_heartbeat?select=id&limit=1" \
-            -H "apikey: $SUPABASE_ANON_KEY")
+          response=$(curl -s -w "\n%{http_code}" \
+            -X PATCH "$SUPABASE_URL/rest/v1/system_heartbeat?id=eq.1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"last_pinged_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}")
           status="${response##*$'\n'}"
           body="${response%$'\n'*}"
 
