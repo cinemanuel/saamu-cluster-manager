@@ -67,3 +67,15 @@ since the whole incident began with a green checkmark that meant nothing.
 A green CI check does not guarantee the check is testing what you think it's
 testing. When a "should be working" system silently fails, verify what the
 passing check actually touches, not just whether it passes.
+
+## Update (Sep 14, 2026)
+
+The read-only SELECT fix above (PR #20) was merged and initially treated as resolved after one manual test succeeded. It wasn't — the project paused again roughly two weeks later, despite the ping running successfully every 3 days the whole time.
+
+Further investigation found that a daily SELECT against the heartbeat table — even a genuine, correctly-authenticated Postgres read — likely still doesn't satisfy Supabase's pause detector. Community reports suggest the detector may specifically require write operations (INSERT/UPDATE), not reads.
+
+Fix: switched the ping from a SELECT to a PATCH/UPDATE against last_pinged_at, and shortened the cadence from every 3 days to daily as additional safety margin (PR #21, merged).
+
+Verification, done properly this time: rather than trusting a 200/204 response alone, directly queried last_pinged_at in the SQL Editor before and after a manual test run, confirming the timestamp itself changed — not just that the HTTP call succeeded.
+
+Real lesson: the first "verification" in this case study was a false positive — a passing HTTP status that didn't prove the thing it was meant to prove. The correction wasn't just a better fix; it was going back and checking the fix's own proof, not just the fix.
